@@ -47,10 +47,13 @@ public class MainActivity extends AppCompatActivity {
         filter.addAction(WifiManager.WIFI_STATE_CHANGED_ACTION);
         filter.addAction(ConnectivityManager.EXTRA_NO_CONNECTIVITY);
 
-        //registerReceiver(broadcastReceiverSend,filter);
-        registerReceiver(broadcastReceiverReceive,filter);
+        IntentFilter tickFilter = new IntentFilter(); // a tick broadcast receiver
+        tickFilter.addAction(Intent.ACTION_TIME_TICK);
 
-        enableWifi();
+        registerReceiver(mTickReceiver,tickFilter);
+
+        //registerReceiver(broadcastReceiverSend,filter); // device 38347D
+        registerReceiver(broadcastReceiverReceive,filter); // device 383541
     }
 
     private void enableWifi() { wifiManager.setWifiEnabled(true); }
@@ -106,6 +109,29 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+    private BroadcastReceiver mTickReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            new WifiController().start(); // turn on Wifi Controller
+        }
+    };
+
+    /**
+     * WifiController controls the turn-on and off of wifi
+     */
+    private class WifiController extends Thread{
+        @Override
+        public void run() {
+            try{
+                enableWifi();
+                Thread.sleep(4000); // set the On period to 4 seconds
+                disableWifi();
+            }catch(InterruptedException ie){
+                ie.printStackTrace();
+            }
+        }
+    }
+
     /***
      *
      * @param str save str to a file
@@ -130,38 +156,34 @@ public class MainActivity extends AppCompatActivity {
 
     private class ListenThread extends Thread{
         String TAG = "ListenThread";
-        boolean Listenexit = false;
         DatagramSocket rds = null;
-        int receiveCount =0;
-
         @Override
         public void run() {
             try{
                 int receivePort=23000;
                 byte[] inBuf = new byte[1024];
                 rds = new DatagramSocket(receivePort);
-                while(!Listenexit){
-                    DatagramPacket inPacket = new DatagramPacket(inBuf,inBuf.length);
-                    rds.setSoTimeout(5000); // 2000ms to timeout
-                    //Log.i(TAG,"go into receive");
-                    rds.receive(inPacket);
-                    String rdata = new String(inPacket.getData());// parse content from UDP packet
-                    Log.i(TAG,"receive "+rdata);
-                    long timeReceiving = System.currentTimeMillis();
-                    saveToFile(rdata+"timeReceiving: "+timeReceiving+"\n");// save every time to a file
-                    //Log.i(TAG,"go out receive "+rdata);
-
-                }
+                DatagramPacket inPacket = new DatagramPacket(inBuf,inBuf.length);
+                rds.setSoTimeout(2000); // 2000ms to timeout
+                //Log.i(TAG,"go into receive");
+                rds.receive(inPacket);
+                String rdata = new String(inPacket.getData());// parse content from UDP packet
+                Log.i(TAG,"receive "+rdata);
+                long timeReceiving = System.currentTimeMillis();
+                saveToFile(rdata+"timeReceiving: "+timeReceiving+"\n");// save every time to a file
+                //Log.i(TAG,"go out receive "+rdata);
                 rds.close();
                 Log.i(TAG,"ListenThread is end");
             }catch(SocketTimeoutException e){
+                rds.close();
                 e.printStackTrace();
             }catch(Exception e){
+                rds.close();
                 e.printStackTrace();
+            }finally{
+                rds.close();
             }
         }
-
-        public void killListenThread(){ Listenexit=true; }
     }
 
     private void sendMessage(String str){
@@ -183,20 +205,14 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    int sendMessageCount=0;
     private class SendMessageThread extends Thread{
         String TAG = "SendMessageThread";
-
         @Override
         public void run() {
-            for(int i=0;i<100;i++){
-                sendMessage(String.valueOf(i)+'\0');
-                Log.i(TAG,"Packet sended "+i);
-                try{
-                    Thread.sleep(1000); // sleep 1000 ms to send next packet
-                }catch(InterruptedException e){
-                    e.printStackTrace();
-                }
-            }
+            sendMessage(String.valueOf(sendMessageCount)+'\0');
+            Log.i(TAG,"Packet sended "+sendMessageCount);
+            sendMessageCount++;
         }
     }
 
