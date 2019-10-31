@@ -52,8 +52,8 @@ public class MainActivity extends AppCompatActivity {
 
         registerReceiver(mTickReceiver,tickFilter);
 
-        //registerReceiver(broadcastReceiverSend,filter); // device 38347D
-        registerReceiver(broadcastReceiverReceive,filter); // device 383541
+        registerReceiver(broadcastReceiverSend,filter); // device 38347D
+        //registerReceiver(broadcastReceiverReceive,filter); // device 383541
     }
 
     private void enableWifi() { wifiManager.setWifiEnabled(true); }
@@ -210,6 +210,11 @@ public class MainActivity extends AppCompatActivity {
         String TAG = "SendMessageThread";
         @Override
         public void run() {
+            try{
+                Thread.sleep(1000); // The sender delays sending for 1 second to fall into the receiving area
+            }catch(InterruptedException e){
+                e.printStackTrace();
+            }
             sendMessage(String.valueOf(sendMessageCount)+'\0');
             Log.i(TAG,"Packet sended "+sendMessageCount);
             sendMessageCount++;
