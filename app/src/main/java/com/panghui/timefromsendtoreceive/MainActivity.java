@@ -35,7 +35,7 @@ public class MainActivity extends AppCompatActivity {
     int min = calendar.get(Calendar.MINUTE);
 
     String filename = "timedata"+year+month+day+"_"+hour+"_"+min;// File name consisting of date and time
-    String ip="192.168.1.4";
+    String ip="192.168.1.5";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -54,16 +54,16 @@ public class MainActivity extends AppCompatActivity {
 
         registerReceiver(mTickReceiver,tickFilter);
 
-        registerReceiver(broadcastReceiverSend,filter); // device 38347D
-        //registerReceiver(broadcastReceiverReceive,filter); // device 383541
+        //registerReceiver(broadcastReceiverSend,filter); // device 38347D
+        registerReceiver(broadcastReceiverReceive,filter); // device 383541
         wifiManager.setWifiEnabled(true);
     }
 
     private void enableWifi() {
         runRootCommand("/system/bin/ifconfig wlan0 "+ip+" netmask 255.255.255.0");
         Log.i("enableWifi:","enable Wifi");
-        new SendMessageThread().start(); // device 38347D
-        //new ListenThread().start(); // device 383541
+        //new SendMessageThread().start(); // device 38347D
+        new ListenThread().start(); // device 383541
     }
     private void disableWifi() {
         runRootCommand("/system/bin/ifconfig wlan0 "+"192.168.2.4"+" netmask 255.255.255.0");
@@ -167,7 +167,7 @@ public class MainActivity extends AppCompatActivity {
         public void run() {
             try{
                 enableWifi();
-                Thread.sleep(30000); // set the On period to 4 seconds
+                Thread.sleep(2000); // set the On period to 2 seconds
                 disableWifi();
             }catch(InterruptedException ie){
                 ie.printStackTrace();
