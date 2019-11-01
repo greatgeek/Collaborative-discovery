@@ -6,12 +6,14 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 
 import java.io.BufferedWriter;
+import java.io.DataOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
@@ -33,7 +35,7 @@ public class MainActivity extends AppCompatActivity {
     int min = calendar.get(Calendar.MINUTE);
 
     String filename = "timedata"+year+month+day+"_"+hour+"_"+min;// File name consisting of date and time
-
+    String ip="192.168.1.4";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -54,10 +56,51 @@ public class MainActivity extends AppCompatActivity {
 
         registerReceiver(broadcastReceiverSend,filter); // device 38347D
         //registerReceiver(broadcastReceiverReceive,filter); // device 383541
+        wifiManager.setWifiEnabled(true);
     }
 
-    private void enableWifi() { wifiManager.setWifiEnabled(true); }
-    private void disableWifi() {wifiManager.setWifiEnabled(false); }
+    private void enableWifi() {
+        runRootCommand("/system/bin/ifconfig wlan0 "+ip+" netmask 255.255.255.0");
+        Log.i("enableWifi:","enable Wifi");
+        new SendMessageThread().start(); // device 38347D
+        //new ListenThread().start(); // device 383541
+    }
+    private void disableWifi() {
+        runRootCommand("/system/bin/ifconfig wlan0 "+"192.168.2.4"+" netmask 255.255.255.0");
+        Log.i("disableWifi:","disable wifi");
+    }
+
+    /**
+     * This function is used to execute shell commands
+     * @param command
+     * @return
+     */
+    public boolean runRootCommand(String command) {
+        Process process = null;
+        DataOutputStream os = null;
+        try {
+            process = Runtime.getRuntime().exec("su");
+            os = new DataOutputStream(process.getOutputStream());
+            os.writeBytes(command+"\n");
+            os.writeBytes("exit\n");
+            os.flush();
+            process.waitFor();
+        } catch (Exception e) {
+           e.printStackTrace();
+            return false;
+        }
+        finally {
+                try {
+                    if (os != null) {
+                        os.close();
+                    }
+                    process.destroy();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+        }
+        return true;
+    }
 
     private BroadcastReceiver broadcastReceiverSend = new BroadcastReceiver() {
         private final String TAG = "broadcastReceiverSend";
@@ -124,7 +167,7 @@ public class MainActivity extends AppCompatActivity {
         public void run() {
             try{
                 enableWifi();
-                Thread.sleep(4000); // set the On period to 4 seconds
+                Thread.sleep(30000); // set the On period to 4 seconds
                 disableWifi();
             }catch(InterruptedException ie){
                 ie.printStackTrace();
