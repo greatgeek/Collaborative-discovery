@@ -37,7 +37,7 @@ public class MainActivity extends AppCompatActivity {
     String filename = "timedata" + year + month + day + "_" + hour + "_" + min;// File name consisting of date and time
     String localIp = IpMaker.getRandomIp(); // Get random Ip address
 
-    public enum SendOrListen {send, listend};
+    public enum SendOrListen {send, listen}
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -191,7 +191,7 @@ public class MainActivity extends AppCompatActivity {
         try {
             if (sl == SendOrListen.send)
                 out = openFileOutput("send_" + filename, Context.MODE_APPEND);
-            if (sl == SendOrListen.listend)
+            if (sl == SendOrListen.listen)
                 out = openFileOutput("receive_" + filename, Context.MODE_APPEND);
                 writer = new BufferedWriter(new OutputStreamWriter(out));
             writer.write(str);
@@ -230,7 +230,7 @@ public class MainActivity extends AppCompatActivity {
                         String rdata = new String(inPacket.getData());// parse content from UDP packet
                         Log.i(TAG, "receive " + rdata);
                         long timeReceiving = System.currentTimeMillis();
-                        saveToFile(SendOrListen.listend,rdata + "timeReceiving: " + timeReceiving + "\n");// save every time to a file
+                        saveToFile(SendOrListen.listen,rdata + "timeReceiving: " + timeReceiving + "\n");// save every time to a file
                     }
                 }
                 rds.close();
