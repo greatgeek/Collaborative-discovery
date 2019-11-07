@@ -10,7 +10,7 @@ public class IpMaker {
         Random randomGenerator = new Random();
         //int x = randomGenerator.nextInt(255);
         int y = makeRandomInteger(1,254,randomGenerator);
-        Log.i("IP",IP + "." + y);
+        Log.i("localIP",IP + "." + y);
         return IP + "." + y;
 
     }

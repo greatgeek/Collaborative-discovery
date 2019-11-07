@@ -33,6 +33,7 @@ public class MainActivity extends AppCompatActivity {
     int day = calendar.get(Calendar.DAY_OF_MONTH);
     int hour = calendar.get(Calendar.HOUR);
     int min = calendar.get(Calendar.MINUTE);
+    boolean alreadyConfigureIp = false;
 
     String filename = "timedata" + year + month + day + "_" + hour + "_" + min;// File name consisting of date and time
     String localIp = IpMaker.getRandomIp();
@@ -60,7 +61,6 @@ public class MainActivity extends AppCompatActivity {
         registerReceiver(broadcastReceiver, filter);
 
         wifiManager.setWifiEnabled(true);
-        configureAdhocNetwork(true, localIp);
     }
 
     private void enableWifi() {
@@ -167,8 +167,12 @@ public class MainActivity extends AppCompatActivity {
                 int wifistate = intent.getIntExtra(WifiManager.EXTRA_WIFI_STATE, WifiManager.WIFI_STATE_DISABLED);
                 if (wifistate == WifiManager.WIFI_STATE_DISABLED) {
                     Log.i(TAG, "wifi is disabled");
-                } else if (wifistate == WifiManager.WIFI_STATE_ENABLED) {
+                } else if (wifistate == WifiManager.WIFI_STATE_ENABLED) { // Wait until the wifi is turned on and then configure the ip address.
                     Log.i(TAG, "wifi is enabled");
+                    if(!alreadyConfigureIp){
+                        configureAdhocNetwork(true, localIp);
+                        alreadyConfigureIp=true;
+                    }
                 }
             }
         }
@@ -243,7 +247,7 @@ public class MainActivity extends AppCompatActivity {
                     InetAddress localIpAddress = InetAddress.getByName(localIp);
                     if (!ipAddress.toString().equals(localIpAddress.toString())) {
                         isLocalpacket = false;
-                        Log.i(TAG, "receive " + rdata);
+                        Log.i(TAG, localIp+"receive " + rdata+" "+ipAddress);
                         long timeReceiving = System.currentTimeMillis();
                         saveToFile(SendorListen.listen, rdata + "timeReceiving: " + timeReceiving + "\n");// save every time to a file
                     }
