@@ -6,7 +6,7 @@ import java.util.Random;
 
 public class IpMaker {
     public static String getRandomIp(){
-        String IP="192.168.43";
+        String IP="192.168.1";
         Random randomGenerator = new Random();
         //int x = randomGenerator.nextInt(255);
         int y = makeRandomInteger(1,254,randomGenerator);
