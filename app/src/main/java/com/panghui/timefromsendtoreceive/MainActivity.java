@@ -10,6 +10,7 @@ import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.text.format.Formatter;
 import android.util.Log;
 
 import java.io.BufferedWriter;
@@ -149,14 +150,19 @@ public class MainActivity extends AppCompatActivity {
 
     private BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
         private final String TAG = "broadcastReceiverSend";
-
+        boolean isTickTrack = false;// checkout if it's go into tick track
         @Override
         public void onReceive(Context context, Intent intent) {
             if (intent.getAction().equals(WifiManager.NETWORK_STATE_CHANGED_ACTION)) {
                 NetworkInfo info = intent.getParcelableExtra(WifiManager.EXTRA_NETWORK_INFO);
                 if (info.getState().equals(NetworkInfo.State.CONNECTED)) { // connect to wifi
-                    new SendMessageThread().start();
-                    new ListenThread().start();
+                    String realLocalIp= Formatter.formatIpAddress(wifiManager.getConnectionInfo().getIpAddress());
+                    Log.i("realLocalIp: ",realLocalIp);
+                    if(realLocalIp.equals(localIp)) isTickTrack=true; // go into tick track
+                    if (isTickTrack) {
+                        new SendMessageThread().start();
+                        new ListenThread().start();
+                    }
 
                 } else if (info.getState().equals(NetworkInfo.State.DISCONNECTED)) { // disconnect to wifi
 
@@ -169,9 +175,9 @@ public class MainActivity extends AppCompatActivity {
                     Log.i(TAG, "wifi is disabled");
                 } else if (wifistate == WifiManager.WIFI_STATE_ENABLED) { // Wait until the wifi is turned on and then configure the ip address.
                     Log.i(TAG, "wifi is enabled");
-                    if(!alreadyConfigureIp){
+                    if (!alreadyConfigureIp) {
                         configureAdhocNetwork(true, localIp);
-                        alreadyConfigureIp=true;
+                        alreadyConfigureIp = true;
                     }
                 }
             }
@@ -244,10 +250,11 @@ public class MainActivity extends AppCompatActivity {
                     rds.receive(inPacket);
                     String rdata = new String(inPacket.getData());// parse content from UDP packet
                     InetAddress ipAddress = inPacket.getAddress();
-                    InetAddress localIpAddress = InetAddress.getByName(localIp);
+                    String realLocalIp = Formatter.formatIpAddress(wifiManager.getConnectionInfo().getIpAddress());
+                    InetAddress localIpAddress = InetAddress.getByName(realLocalIp);
                     if (!ipAddress.toString().equals(localIpAddress.toString())) {
                         isLocalpacket = false;
-                        Log.i(TAG, localIp+"receive " + rdata+" "+ipAddress);
+                        Log.i(TAG, realLocalIp + "receive " + rdata + " " + ipAddress);
                         long timeReceiving = System.currentTimeMillis();
                         saveToFile(SendorListen.listen, rdata + "timeReceiving: " + timeReceiving + "\n");// save every time to a file
                     }
