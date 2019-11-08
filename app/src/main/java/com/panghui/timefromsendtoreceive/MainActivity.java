@@ -244,7 +244,7 @@ public class MainActivity extends AppCompatActivity {
                 byte[] inBuf = new byte[1024];
                 rds = new DatagramSocket(receivePort);
                 DatagramPacket inPacket = new DatagramPacket(inBuf, inBuf.length);
-                rds.setSoTimeout(2000); // 2000ms to timeout
+                rds.setSoTimeout(1000); // 1000ms to timeout
 
                 while (isLocalpacket) {
                     rds.receive(inPacket);
