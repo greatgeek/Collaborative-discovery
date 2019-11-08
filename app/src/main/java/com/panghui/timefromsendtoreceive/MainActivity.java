@@ -10,7 +10,9 @@ import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.text.format.Formatter;
 import android.util.Log;
+import android.util.Log.*;
 
 import java.io.BufferedWriter;
 import java.io.DataOutputStream;
@@ -57,13 +59,14 @@ public class MainActivity extends AppCompatActivity {
 
         registerReceiver(mTickReceiver, tickFilter);
 
-        //registerReceiver(broadcastReceiverSend,filter); // device 38347D
+        registerReceiver(broadcastReceiverSend,filter); // device 38347D
         //registerReceiver(broadcastReceiverReceive,filter); // device 383541
         wifiManager.setWifiEnabled(true);
     }
 
     private void enableWifi() {
         runRootCommand("/system/bin/ifconfig wlan0 " + localIp + " netmask 255.255.255.0");
+        Log.v("localIp",localIp);
         Log.i("enableWifi:", "enable Wifi");
         new SendMessageThread().start();
         new ListenThread().start();
@@ -114,7 +117,8 @@ public class MainActivity extends AppCompatActivity {
             if (intent.getAction().equals(WifiManager.NETWORK_STATE_CHANGED_ACTION)) {
                 NetworkInfo info = intent.getParcelableExtra(WifiManager.EXTRA_NETWORK_INFO);
                 if (info.getState().equals(NetworkInfo.State.CONNECTED)) { // connect to wifi
-                    new SendMessageThread().start();
+                    String realLocalIp = Formatter.formatIpAddress(wifiManager.getConnectionInfo().getIpAddress());
+                    Log.i("realLocalIp",realLocalIp);
 
                 } else if (info.getState().equals(NetworkInfo.State.DISCONNECTED)) { // disconnect to wifi
 
@@ -173,7 +177,7 @@ public class MainActivity extends AppCompatActivity {
         public void run() {
             try {
                 enableWifi();
-                Thread.sleep(1000); // set the On period to 1 seconds
+                Thread.sleep(55000); // set the On period to 1 seconds
                 disableWifi();
             } catch (InterruptedException ie) {
                 ie.printStackTrace();
@@ -228,7 +232,7 @@ public class MainActivity extends AppCompatActivity {
                     if (!IpAddress.toString().equals(localIpAddress.toString())) {
                         isLocalPacket = false;
                         String rdata = new String(inPacket.getData());// parse content from UDP packet
-                        Log.i(TAG, "receive " + rdata);
+                        Log.i(TAG, localIpAddress+"receive " + rdata+IpAddress);
                         long timeReceiving = System.currentTimeMillis();
                         saveToFile(SendOrListen.listen,rdata + "timeReceiving: " + timeReceiving + "\n");// save every time to a file
                     }
