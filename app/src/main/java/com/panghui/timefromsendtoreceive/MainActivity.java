@@ -12,7 +12,6 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.format.Formatter;
 import android.util.Log;
-import android.util.Log.*;
 
 import java.io.BufferedWriter;
 import java.io.DataOutputStream;
@@ -59,8 +58,8 @@ public class MainActivity extends AppCompatActivity {
 
         registerReceiver(mTickReceiver, tickFilter);
 
-        registerReceiver(broadcastReceiverSend,filter); // device 38347D
-        //registerReceiver(broadcastReceiverReceive,filter); // device 383541
+        registerReceiver(broadcastReceiver,filter); // broadcast receiver
+
         wifiManager.setWifiEnabled(true);
     }
 
@@ -109,7 +108,7 @@ public class MainActivity extends AppCompatActivity {
         return true;
     }
 
-    private BroadcastReceiver broadcastReceiverSend = new BroadcastReceiver() {
+    private BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
         private final String TAG = "broadcastReceiverSend";
 
         @Override
@@ -136,31 +135,6 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-    private BroadcastReceiver broadcastReceiverReceive = new BroadcastReceiver() {
-        private final String TAG = "broadcastReceiverSend";
-
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            if (intent.getAction().equals(WifiManager.NETWORK_STATE_CHANGED_ACTION)) {
-                NetworkInfo info = intent.getParcelableExtra(WifiManager.EXTRA_NETWORK_INFO);
-                if (info.getState().equals(NetworkInfo.State.CONNECTED)) {// connect to  wifi
-                    new ListenThread().start();
-
-                } else if (info.getState().equals(NetworkInfo.State.DISCONNECTED)) {
-
-                }
-            }
-
-            if (intent.getAction().equals(WifiManager.WIFI_STATE_CHANGED_ACTION)) {
-                int wifistate = intent.getIntExtra(WifiManager.EXTRA_WIFI_STATE, WifiManager.WIFI_STATE_DISABLED);
-                if (wifistate == WifiManager.WIFI_STATE_DISABLED) {
-                    Log.i(TAG, "wifi is disabled");
-                } else if (wifistate == WifiManager.WIFI_STATE_ENABLED) {
-                    Log.i(TAG, "wifi is enabled");
-                }
-            }
-        }
-    };
 
     private BroadcastReceiver mTickReceiver = new BroadcastReceiver() {
         @Override
