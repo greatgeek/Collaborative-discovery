@@ -12,6 +12,10 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.format.Formatter;
 import android.util.Log;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.Toast;
 
 import java.io.BufferedWriter;
 import java.io.DataOutputStream;
@@ -41,10 +45,53 @@ public class MainActivity extends AppCompatActivity {
 
     public enum SendorListen {send, listen}
 
+    /**UI components*/
+    private EditText BeaconSendTime;
+    private EditText ListeningTime;
+    private EditText WorkingPeriod;
+    private EditText PhaseDifference;
+    private Button StartSim;
+
+    /**Experimental parameters*/
+    private long beaconSendTime;
+    private long listeningTime;
+    private long workingPeriod;
+    private long phaseDifference;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        /**UI components*/
+        BeaconSendTime=findViewById(R.id.beaconSendTime);
+        ListeningTime=findViewById(R.id.listeningTime);
+        WorkingPeriod=findViewById(R.id.workingPeriod);
+        PhaseDifference=findViewById(R.id.phaseDifference);
+        StartSim=findViewById(R.id.startSim);
+
+        StartSim.setOnClickListener(new View.OnClickListener(){
+
+            @Override
+            public void onClick(View v) {
+                if(BeaconSendTime.getText().toString()==null || ListeningTime.getText().toString()==null ||
+                WorkingPeriod.getText().toString()==null || PhaseDifference.getText().toString()==null){
+                    Toast.makeText(MainActivity.this,"Experimental parameters cannot be null",
+                            Toast.LENGTH_SHORT).show();
+                }
+
+                beaconSendTime=Long.parseLong(BeaconSendTime.getText().toString());
+                listeningTime=Long.parseLong(ListeningTime.getText().toString());
+                workingPeriod=Long.parseLong(WorkingPeriod.getText().toString());
+                phaseDifference=Long.parseLong(PhaseDifference.getText().toString());
+
+                // Do not allow changes to experiment parameters after clicking Start
+                BeaconSendTime.setEnabled(false);
+                ListeningTime.setEnabled(false);
+                WorkingPeriod.setEnabled(false);
+                PhaseDifference.setEnabled(false);
+            }
+        });
 
         wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);// get Wifi Manager
 
