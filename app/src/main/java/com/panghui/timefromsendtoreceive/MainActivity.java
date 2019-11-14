@@ -6,8 +6,9 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
-import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiManager;
+import android.os.Handler;
+import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.format.Formatter;
@@ -15,6 +16,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.BufferedWriter;
@@ -44,18 +46,38 @@ public class MainActivity extends AppCompatActivity {
 
     public enum SendOrListen {send, listen}
 
-    /**UI components*/
+    /**
+     * UI components
+     */
     private EditText BeaconSendTime;
     private EditText ListeningTime;
     private EditText WorkingPeriod;
     private EditText PhaseDifference;
     private Button StartSim;
+    private EditText LogMessage;
 
-    /**Experimental parameters*/
+    static final int UPDATE_TEXT = 1;
+    String logMessage = "log:\n";
+
+    /**
+     * Experimental parameters
+     */
     private long beaconSendTime;
     private long listeningTime;
     private long workingPeriod;
     private long phaseDifference;
+
+    /**
+     * some judgement flags
+     */
+    boolean iFindYou = false;
+    boolean pushStart = false;
+
+    /**
+     * Variables are used to record the length of time from startup to discovery
+     */
+    long timeStart = 0;
+    long timeFind = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -63,32 +85,39 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         /**UI components*/
-        BeaconSendTime=findViewById(R.id.beaconSendTime);
-        ListeningTime=findViewById(R.id.listeningTime);
-        WorkingPeriod=findViewById(R.id.workingPeriod);
-        PhaseDifference=findViewById(R.id.phaseDifference);
-        StartSim=findViewById(R.id.startSim);
+        BeaconSendTime = findViewById(R.id.beaconSendTime);
+        ListeningTime = findViewById(R.id.listeningTime);
+        WorkingPeriod = findViewById(R.id.workingPeriod);
+        PhaseDifference = findViewById(R.id.phaseDifference);
+        StartSim = findViewById(R.id.startSim);
+        LogMessage = findViewById(R.id.logMessage);
 
-        StartSim.setOnClickListener(new View.OnClickListener(){
+        StartSim.setOnClickListener(new View.OnClickListener() {
 
             @Override
             public void onClick(View v) {
-                if(BeaconSendTime.getText().toString()==null || ListeningTime.getText().toString()==null ||
-                WorkingPeriod.getText().toString()==null || PhaseDifference.getText().toString()==null){
-                    Toast.makeText(MainActivity.this,"Experimental parameters cannot be null",
+                if (BeaconSendTime.getText().toString() == null || ListeningTime.getText().toString() == null ||
+                        WorkingPeriod.getText().toString() == null || PhaseDifference.getText().toString() == null) {
+                    Toast.makeText(MainActivity.this, "Experimental parameters cannot be null",
                             Toast.LENGTH_SHORT).show();
                 }
 
-                beaconSendTime=Long.parseLong(BeaconSendTime.getText().toString());
-                listeningTime=Long.parseLong(ListeningTime.getText().toString());
-                workingPeriod=Long.parseLong(WorkingPeriod.getText().toString());
-                phaseDifference=Long.parseLong(PhaseDifference.getText().toString());
+                beaconSendTime = Long.parseLong(BeaconSendTime.getText().toString());
+                listeningTime = Long.parseLong(ListeningTime.getText().toString());
+                workingPeriod = Long.parseLong(WorkingPeriod.getText().toString());
+                phaseDifference = Long.parseLong(PhaseDifference.getText().toString());
 
                 // Do not allow changes to experiment parameters after clicking Start
                 BeaconSendTime.setEnabled(false);
                 ListeningTime.setEnabled(false);
                 WorkingPeriod.setEnabled(false);
                 PhaseDifference.setEnabled(false);
+
+                pushStart = true;
+                StartSim.setEnabled(false); // Do not allow click the button
+
+                logMessage = "push the start button\n";
+                handler.obtainMessage(UPDATE_TEXT).sendToTarget(); // update UI
             }
         });
 
@@ -105,16 +134,16 @@ public class MainActivity extends AppCompatActivity {
 
         registerReceiver(mTickReceiver, tickFilter);
 
-        registerReceiver(broadcastReceiver,filter); // broadcast receiver
+        //registerReceiver(broadcastReceiver, filter); // broadcast receiver
 
         wifiManager.setWifiEnabled(true);
     }
 
     private void enableWifi() {
         runRootCommand("/system/bin/ifconfig wlan0 " + localIp + " netmask 255.255.255.0");
-        Log.v("localIp",localIp);
+        Log.v("localIp", localIp);
         Log.i("enableWifi:", "enable Wifi");
-        new SendMessageThread().start();
+        new SendBeaconThread().start();
         new ListenThread().start();
     }
 
@@ -164,7 +193,7 @@ public class MainActivity extends AppCompatActivity {
                 NetworkInfo info = intent.getParcelableExtra(WifiManager.EXTRA_NETWORK_INFO);
                 if (info.getState().equals(NetworkInfo.State.CONNECTED)) { // connect to wifi
                     String realLocalIp = Formatter.formatIpAddress(wifiManager.getConnectionInfo().getIpAddress());
-                    Log.i("realLocalIp",realLocalIp);
+                    Log.i("realLocalIp", realLocalIp);
 
                 } else if (info.getState().equals(NetworkInfo.State.DISCONNECTED)) { // disconnect to wifi
 
@@ -186,22 +215,55 @@ public class MainActivity extends AppCompatActivity {
     private BroadcastReceiver mTickReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            new WifiController().start(); // turn on Wifi Controller
+            if (pushStart) {
+                logMessage = "Tick Start\n";
+                handler.obtainMessage(UPDATE_TEXT).sendToTarget();
+                timeStart = System.currentTimeMillis(); // get the start time
+                try {
+                    Thread.sleep(phaseDifference); // Set the phase difference from the whole minute
+                    new PeriodController().start(); // if we push the Start button,turn on Period Controller
+                } catch (InterruptedException ie) {
+                    ie.printStackTrace();
+                }
+                pushStart = false; // mTickReceiver only start once
+            }
         }
     };
 
     /**
      * WifiController controls the turn-on and off of wifi
      */
+    int wifiControllerStartCount = 0;
+
     private class WifiController extends Thread {
         @Override
         public void run() {
+            logMessage = "WifiController: " + wifiControllerStartCount + "\n";
+            handler.obtainMessage(UPDATE_TEXT).sendToTarget();
+            wifiControllerStartCount++;
             try {
                 enableWifi();
-                Thread.sleep(55000); // set the On period to 1 seconds
+                Thread.sleep(beaconSendTime + listeningTime); // set the On period
                 disableWifi();
             } catch (InterruptedException ie) {
                 ie.printStackTrace();
+            }
+        }
+    }
+
+    /**
+     * PeriodController controls the working period
+     */
+    private class PeriodController extends Thread {
+        @Override
+        public void run() {
+            while (!iFindYou) {
+                try {
+                    new WifiController().start();
+                    Thread.sleep(workingPeriod); // set the working period
+                } catch (InterruptedException ie) {
+                    ie.printStackTrace();
+                }
             }
         }
     }
@@ -218,7 +280,7 @@ public class MainActivity extends AppCompatActivity {
                 out = openFileOutput("send_" + filename, Context.MODE_APPEND);
             if (sl == SendOrListen.listen)
                 out = openFileOutput("receive_" + filename, Context.MODE_APPEND);
-                writer = new BufferedWriter(new OutputStreamWriter(out));
+            writer = new BufferedWriter(new OutputStreamWriter(out));
             writer.write(str);
         } catch (IOException e) {
             e.printStackTrace();
@@ -243,7 +305,7 @@ public class MainActivity extends AppCompatActivity {
                 byte[] inBuf = new byte[1024];
                 rds = new DatagramSocket(receivePort);
                 DatagramPacket inPacket = new DatagramPacket(inBuf, inBuf.length);
-                rds.setSoTimeout(2000); // 2000ms to timeout
+                rds.setSoTimeout(1000); // 1000ms to timeout
                 while (isLocalPacket) {
                     rds.receive(inPacket);
 
@@ -253,20 +315,26 @@ public class MainActivity extends AppCompatActivity {
                     if (!IpAddress.toString().equals(localIpAddress.toString())) {
                         isLocalPacket = false;
                         String rdata = new String(inPacket.getData());// parse content from UDP packet
-                        Log.i(TAG, localIpAddress+"receive " + rdata+IpAddress);
-                        long timeReceiving = System.currentTimeMillis();
-                        saveToFile(SendOrListen.listen,rdata + "timeReceiving: " + timeReceiving + "\n");// save every time to a file
+                        if (rdata.trim().equals("beacon")) {
+                            new SendAckThread().start();// send a ACK back
+                        } else if (rdata.trim().equals("ack")) {
+                            Log.i(TAG, localIpAddress + "receive " + rdata + IpAddress);
+                            timeFind = System.currentTimeMillis();// get the time of discovery
+                            saveToFile(SendOrListen.listen, rdata + "timeReceiving: " + (timeFind - timeStart) + "\n");// save every time to a file
+
+                            //iFindYou = true;// i find you
+                            logMessage = "I find you \n";
+                            handler.obtainMessage(UPDATE_TEXT).sendToTarget();
+                        }
                     }
                 }
                 rds.close();
                 Log.i(TAG, "ListenThread is end");
             } catch (SocketTimeoutException e) {
                 isLocalPacket = false;
-                rds.close();
                 e.printStackTrace();
             } catch (Exception e) {
                 isLocalPacket = false;
-                rds.close();
                 e.printStackTrace();
             } finally {
                 isLocalPacket = false;
@@ -286,7 +354,7 @@ public class MainActivity extends AppCompatActivity {
             DatagramPacket dp = new DatagramPacket(str.getBytes(), str.getBytes().length, broadcastAddress, sendPort);
             long timeSending = System.currentTimeMillis();
             ds.send(dp);
-            saveToFile(SendOrListen.send,str + "timeSending: " + timeSending + "\n"); // save every sending time to a file
+            saveToFile(SendOrListen.send, str + "timeSending: " + timeSending + "\n"); // save every sending time to a file
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
@@ -296,20 +364,37 @@ public class MainActivity extends AppCompatActivity {
 
     int sendMessageCount = 0;
 
-    private class SendMessageThread extends Thread {
-        String TAG = "SendMessageThread";
+    private class SendBeaconThread extends Thread {
+        String TAG = "SendBeaconThread";
 
         @Override
         public void run() {
-            try {
-                Thread.sleep(500); // The sender delays sending for 0.5 second to fall into the receiving area
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            sendMessage(String.valueOf(sendMessageCount) + '\0');
+            sendMessage("beacon");
             Log.i(TAG, "Packet sended " + sendMessageCount);
             sendMessageCount++;
         }
     }
+
+    private class SendAckThread extends Thread {
+        String TAG = "SendAckThread";
+
+        @Override
+        public void run() {
+            sendMessage("ack");
+            Log.i(TAG, "Packet sended " + sendMessageCount);
+            sendMessageCount++;
+        }
+    }
+
+    private Handler handler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+                case UPDATE_TEXT:
+                    LogMessage.append(logMessage);
+                    break;
+            }
+        }
+    };
 
 }
