@@ -54,6 +54,7 @@ public class MainActivity extends AppCompatActivity {
     private EditText WorkingPeriod;
     private EditText PhaseDifference;
     private Button StartSim;
+    private Button Reset;
     private EditText LogMessage;
 
     static final int UPDATE_TEXT = 1;
@@ -76,8 +77,8 @@ public class MainActivity extends AppCompatActivity {
     /**
      * Variables are used to record the length of time from startup to discovery
      */
-    long timeStart = 0;
-    long timeFind = 0;
+    static long timeStart = 0;
+    static long timeFind = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -90,6 +91,7 @@ public class MainActivity extends AppCompatActivity {
         WorkingPeriod = findViewById(R.id.workingPeriod);
         PhaseDifference = findViewById(R.id.phaseDifference);
         StartSim = findViewById(R.id.startSim);
+        Reset = findViewById(R.id.reset);
         LogMessage = findViewById(R.id.logMessage);
 
         StartSim.setOnClickListener(new View.OnClickListener() {
@@ -114,12 +116,37 @@ public class MainActivity extends AppCompatActivity {
                 PhaseDifference.setEnabled(false);
 
                 pushStart = true;
+                iFindYou = false;
                 StartSim.setEnabled(false); // Do not allow click the button
+                Reset.setEnabled(true);
 
                 logMessage = "push the start button\n";
                 handler.obtainMessage(UPDATE_TEXT).sendToTarget(); // update UI
             }
         });
+
+        Reset.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                // allow changes to experiment parameter
+                BeaconSendTime.setEnabled(true);
+                ListeningTime.setEnabled(true);
+                WorkingPeriod.setEnabled(true);
+                PhaseDifference.setEnabled(true);
+
+                LogMessage.setText(""); // clear log output
+                pushStart = false; // set pushStart is false
+                iFindYou = true;
+                StartSim.setEnabled(true); // allow click the button
+
+                wifiControllerStartCount = 0; // reset the wifiController counter
+            }
+        });
+
+        // Initialization start and reset button
+        StartSim.setEnabled(true);
+        Reset.setEnabled(false);
 
         wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);// get Wifi Manager
 
@@ -216,9 +243,9 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onReceive(Context context, Intent intent) {
             if (pushStart) {
-                logMessage = "Tick Start\n";
+                timeStart = System.currentTimeMillis(); // get current system time
+                logMessage = "Tick Start " + "\n";
                 handler.obtainMessage(UPDATE_TEXT).sendToTarget();
-                timeStart = System.currentTimeMillis(); // get the start time
                 try {
                     Thread.sleep(phaseDifference); // Set the phase difference from the whole minute
                     new PeriodController().start(); // if we push the Start button,turn on Period Controller
@@ -238,7 +265,8 @@ public class MainActivity extends AppCompatActivity {
     private class WifiController extends Thread {
         @Override
         public void run() {
-            logMessage = "WifiController: " + wifiControllerStartCount + "\n";
+            long time = System.currentTimeMillis();
+            logMessage = "WifiController - " + wifiControllerStartCount + "\n";
             handler.obtainMessage(UPDATE_TEXT).sendToTarget();
             wifiControllerStartCount++;
             try {
@@ -317,13 +345,16 @@ public class MainActivity extends AppCompatActivity {
                         String rdata = new String(inPacket.getData());// parse content from UDP packet
                         if (rdata.trim().equals("beacon")) {
                             new SendAckThread().start();// send a ACK back
+                            timeFind = System.currentTimeMillis();
+                            logMessage = "receive beacon - " + (timeFind - timeStart) + "\n";
+                            handler.obtainMessage(UPDATE_TEXT).sendToTarget();
                         } else if (rdata.trim().equals("ack")) {
                             Log.i(TAG, localIpAddress + "receive " + rdata + IpAddress);
                             timeFind = System.currentTimeMillis();// get the time of discovery
                             saveToFile(SendOrListen.listen, rdata + "timeReceiving: " + (timeFind - timeStart) + "\n");// save every time to a file
 
-                            //iFindYou = true;// i find you
-                            logMessage = "I find you \n";
+                            // iFindYou = true; // i find you
+                            logMessage = "receive ack -" + (timeFind - timeStart) + "\n";
                             handler.obtainMessage(UPDATE_TEXT).sendToTarget();
                         }
                     }
