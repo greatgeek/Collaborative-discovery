@@ -113,7 +113,7 @@
                 android:textAllCaps="false"
                 android:text="Reset"/>
     </LinearLayout>
-    
+
     <EditText
         android:id="@+id/logMessage"
         android:layout_width="match_parent"
