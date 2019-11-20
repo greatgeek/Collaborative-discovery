@@ -456,7 +456,7 @@ public class MainActivity extends AppCompatActivity {
             if (ds != null) ds.close();
         }
     }
-    
+
     /**
      * used to send beacon or ack,msg can contain beacon or ack
      */
