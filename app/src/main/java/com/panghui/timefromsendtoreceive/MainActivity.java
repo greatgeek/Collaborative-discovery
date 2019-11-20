@@ -28,6 +28,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketTimeoutException;
+import java.net.UnknownHostException;
 import java.util.Calendar;
 
 public class MainActivity extends AppCompatActivity {
@@ -80,6 +81,11 @@ public class MainActivity extends AppCompatActivity {
     static long timeStart = 0;
     static long timeFind = 0;
 
+    /**
+     * Network communication related
+     */
+    InetAddress broadcastAddress;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -102,26 +108,26 @@ public class MainActivity extends AppCompatActivity {
                         WorkingPeriod.getText().toString() == null || PhaseDifference.getText().toString() == null) {
                     Toast.makeText(MainActivity.this, "Experimental parameters cannot be null",
                             Toast.LENGTH_SHORT).show();
+                }else{
+                    beaconSendTime = Long.parseLong(BeaconSendTime.getText().toString());
+                    listeningTime = Long.parseLong(ListeningTime.getText().toString());
+                    workingPeriod = Long.parseLong(WorkingPeriod.getText().toString());
+                    phaseDifference = Long.parseLong(PhaseDifference.getText().toString());
+
+                    // Do not allow changes to experiment parameters after clicking Start
+                    BeaconSendTime.setEnabled(false);
+                    ListeningTime.setEnabled(false);
+                    WorkingPeriod.setEnabled(false);
+                    PhaseDifference.setEnabled(false);
+
+                    pushStart = true;
+                    iFindYou = false;
+                    StartSim.setEnabled(false); // Do not allow click the button
+                    Reset.setEnabled(true);
+
+                    logMessage = "push the start button\n";
+                    handler.obtainMessage(UPDATE_TEXT).sendToTarget(); // update UI
                 }
-
-                beaconSendTime = Long.parseLong(BeaconSendTime.getText().toString());
-                listeningTime = Long.parseLong(ListeningTime.getText().toString());
-                workingPeriod = Long.parseLong(WorkingPeriod.getText().toString());
-                phaseDifference = Long.parseLong(PhaseDifference.getText().toString());
-
-                // Do not allow changes to experiment parameters after clicking Start
-                BeaconSendTime.setEnabled(false);
-                ListeningTime.setEnabled(false);
-                WorkingPeriod.setEnabled(false);
-                PhaseDifference.setEnabled(false);
-
-                pushStart = true;
-                iFindYou = false;
-                StartSim.setEnabled(false); // Do not allow click the button
-                Reset.setEnabled(true);
-
-                logMessage = "push the start button\n";
-                handler.obtainMessage(UPDATE_TEXT).sendToTarget(); // update UI
             }
         });
 
@@ -160,7 +166,11 @@ public class MainActivity extends AppCompatActivity {
         tickFilter.addAction(Intent.ACTION_TIME_TICK);
 
         registerReceiver(mTickReceiver, tickFilter);
-
+        try {
+            broadcastAddress = InetAddress.getByName("192.168.1.255");
+        } catch (UnknownHostException uhe) {
+            uhe.printStackTrace();
+        }
         //registerReceiver(broadcastReceiver, filter); // broadcast receiver
 
         wifiManager.setWifiEnabled(true);
@@ -170,7 +180,7 @@ public class MainActivity extends AppCompatActivity {
         runRootCommand("/system/bin/ifconfig wlan0 " + localIp + " netmask 255.255.255.0");
         Log.v("localIp", localIp);
         Log.i("enableWifi:", "enable Wifi");
-        new SendBeaconThread().start();
+        new SendMessageThread("beacon", broadcastAddress).start();
         new ListenThread().start();
     }
 
@@ -338,18 +348,18 @@ public class MainActivity extends AppCompatActivity {
                     rds.receive(inPacket);
 
                     // Filter local UDP packets
-                    InetAddress IpAddress = inPacket.getAddress();
+                    InetAddress ipAddress = inPacket.getAddress();
                     InetAddress localIpAddress = InetAddress.getByName(localIp);
-                    if (!IpAddress.toString().equals(localIpAddress.toString())) {
+                    if (!ipAddress.toString().equals(localIpAddress.toString())) {
                         isLocalPacket = false;
                         String rdata = new String(inPacket.getData());// parse content from UDP packet
                         if (rdata.trim().equals("beacon")) {
-                            new SendAckThread().start();// send a ACK back
+                            new SendMessageThread("ack", ipAddress).start();// send a ACK back
                             timeFind = System.currentTimeMillis();
                             logMessage = "receive beacon - " + (timeFind - timeStart) + "\n";
                             handler.obtainMessage(UPDATE_TEXT).sendToTarget();
                         } else if (rdata.trim().equals("ack")) {
-                            Log.i(TAG, localIpAddress + "receive " + rdata + IpAddress);
+                            Log.i(TAG, localIpAddress + "receive " + rdata + ipAddress);
                             timeFind = System.currentTimeMillis();// get the time of discovery
                             saveToFile(SendOrListen.listen, rdata + "timeReceiving: " + (timeFind - timeStart) + "\n");// save every time to a file
 
@@ -374,15 +384,14 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void sendMessage(String str) {
+    private void sendMessage(String str, InetAddress ipAddress) {
         DatagramSocket ds = null;
         String TAG = "sendMessage";
         try {
             int sendPort = 23000;
             ds = new DatagramSocket();
             ds.setBroadcast(true);
-            InetAddress broadcastAddress = InetAddress.getByName("192.168.1.255");
-            DatagramPacket dp = new DatagramPacket(str.getBytes(), str.getBytes().length, broadcastAddress, sendPort);
+            DatagramPacket dp = new DatagramPacket(str.getBytes(), str.getBytes().length, ipAddress, sendPort);
             long timeSending = System.currentTimeMillis();
             ds.send(dp);
             saveToFile(SendOrListen.send, str + "timeSending: " + timeSending + "\n"); // save every sending time to a file
@@ -393,27 +402,21 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    int sendMessageCount = 0;
+    /**
+     * used to send beacon or ack. msg can contain beacon or ack.
+     */
+    private class SendMessageThread extends Thread {
+        String msg;
+        InetAddress ipAddress;
 
-    private class SendBeaconThread extends Thread {
-        String TAG = "SendBeaconThread";
-
-        @Override
-        public void run() {
-            sendMessage("beacon");
-            Log.i(TAG, "Packet sended " + sendMessageCount);
-            sendMessageCount++;
+        SendMessageThread(String msg, InetAddress ipAddress) {
+            this.msg = msg;
+            this.ipAddress = ipAddress;
         }
-    }
-
-    private class SendAckThread extends Thread {
-        String TAG = "SendAckThread";
 
         @Override
         public void run() {
-            sendMessage("ack");
-            Log.i(TAG, "Packet sended " + sendMessageCount);
-            sendMessageCount++;
+            sendMessage(msg, ipAddress);
         }
     }
 
