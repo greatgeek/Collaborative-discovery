@@ -28,6 +28,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketTimeoutException;
+import java.net.UnknownHostException;
 import java.util.Calendar;
 
 public class MainActivity extends AppCompatActivity {
@@ -81,6 +82,11 @@ public class MainActivity extends AppCompatActivity {
     static long timeStart = 0;
     static long timeFind = 0;
 
+    /**
+     * Network communication related
+     */
+    InetAddress broadcastAddress;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -103,7 +109,7 @@ public class MainActivity extends AppCompatActivity {
                         WorkingPeriod.getText().toString() == null || PhaseDifference.getText().toString() == null) {
                     Toast.makeText(MainActivity.this, "Experimental parameters cannot be null",
                             Toast.LENGTH_SHORT).show();
-                }else{
+                } else {
                     beaconSendTime = Long.parseLong(BeaconSendTime.getText().toString());
                     listeningTime = Long.parseLong(ListeningTime.getText().toString());
                     workingPeriod = Long.parseLong(WorkingPeriod.getText().toString());
@@ -162,6 +168,14 @@ public class MainActivity extends AppCompatActivity {
         registerReceiver(mTickReceiver, tickFilter);
 
         registerReceiver(broadcastReceiver, filter);
+
+        // construct a broadcast address
+        try {
+            broadcastAddress = InetAddress.getByName("192.168.1.255");
+        } catch (UnknownHostException uhe) {
+            uhe.printStackTrace();
+        }
+
 
         wifiManager.setWifiEnabled(true);
     }
@@ -263,7 +277,7 @@ public class MainActivity extends AppCompatActivity {
                     Log.i("realLocalIp: ", realLocalIp);
                     if (realLocalIp.equals(localIp)) isTickTrack = true; // go into tick track
                     if (isTickTrack) {
-                        new SendBeaconThread().start();
+                        new SendMessageThread("beacon", broadcastAddress).start();
                         new ListenThread().start();
                     }
 
@@ -291,7 +305,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onReceive(Context context, Intent intent) {
             if (pushStart) {
-                timeStart = System.currentTimeMillis(); // get current system time
+                timeStart = System.currentTimeMillis() + 2000; // get current system time,2000 is the time required to switch wifi to connect to the network
                 logMessage = "Tick Start\n";
                 handler.obtainMessage(UPDATE_TEXT).sendToTarget();
                 try {
@@ -319,7 +333,7 @@ public class MainActivity extends AppCompatActivity {
             wifiControllerStartCount++;
             try {
                 enableWifi();
-                Thread.sleep(beaconSendTime + listeningTime+2000); // set the On period, 2000ms is the time from opening wifi to connecting to the network
+                Thread.sleep(beaconSendTime + listeningTime + 2000); // set the On period, 2000ms is the time from opening wifi to connecting to the network
                 disableWifi();
             } catch (InterruptedException ie) {
                 ie.printStackTrace();
@@ -394,17 +408,17 @@ public class MainActivity extends AppCompatActivity {
                         isLocalpacket = false;
                         String rdata = new String(inPacket.getData());// parse content from UDP packet
                         if (rdata.trim().equals("beacon")) {
-                            new SendAckThread().start(); // send a ACK back
-                            timeFind=System.currentTimeMillis();
+                            new SendMessageThread("ack", ipAddress).start(); // send a ACK back
+                            timeFind = System.currentTimeMillis();
                             logMessage = "receive beacon - " + (timeFind - timeStart) + "\n";
                             handler.obtainMessage(UPDATE_TEXT).sendToTarget();
                         } else if (rdata.trim().equals("ack")) {
-                            Log.i(TAG,localIpAddress+"receive "+rdata+ipAddress);
+                            Log.i(TAG, localIpAddress + "receive " + rdata + ipAddress);
                             timeFind = System.currentTimeMillis(); // get the time of discovery
-                            saveToFile(SendorListen.listen, rdata + "timeReceiving: " + (timeFind-timeStart) + "\n");// save every time to a file
+                            saveToFile(SendorListen.listen, rdata + "timeReceiving: " + (timeFind - timeStart) + "\n");// save every time to a file
 
                             // iFindYou = true; // i find you
-                            logMessage="receive ack - " +(timeFind-timeStart)+"\n";
+                            logMessage = "receive ack - " + (timeFind - timeStart) + "\n";
                             handler.obtainMessage(UPDATE_TEXT).sendToTarget();
                         }
                     }
@@ -413,26 +427,26 @@ public class MainActivity extends AppCompatActivity {
                 rds.close();
                 Log.i(TAG, "ListenThread is end");
             } catch (SocketTimeoutException e) {
-                isLocalpacket=false;
+                isLocalpacket = false;
                 e.printStackTrace();
             } catch (Exception e) {
                 e.printStackTrace();
             } finally {
-                isLocalpacket=false;
+                isLocalpacket = false;
                 rds.close();
             }
         }
     }
 
-    private void sendMessage(String str) {
+    private void sendMessage(String str, InetAddress ipAddress) {
         DatagramSocket ds = null;
         String TAG = "sendMessage";
         try {
             int sendPort = 23000;
             ds = new DatagramSocket();
             ds.setBroadcast(true);
-            InetAddress broadcastAddress = InetAddress.getByName("192.168.1.255");
-            DatagramPacket dp = new DatagramPacket(str.getBytes(), str.getBytes().length, broadcastAddress, sendPort);
+            //InetAddress broadcastAddress = InetAddress.getByName("192.168.1.255");
+            DatagramPacket dp = new DatagramPacket(str.getBytes(), str.getBytes().length, ipAddress, sendPort);
             long timeSending = System.currentTimeMillis();
             ds.send(dp);
             saveToFile(SendorListen.send, str + "timeSending: " + timeSending + "\n"); // save every sending time to a file
@@ -442,41 +456,25 @@ public class MainActivity extends AppCompatActivity {
             if (ds != null) ds.close();
         }
     }
-
+    
     /**
-     * Send beacon
+     * used to send beacon or ack,msg can contain beacon or ack
      */
-    private class SendBeaconThread extends Thread {
-        @Override
-        public void run() {
-            sendMessage("beacon");
-        }
-    }
-
-    private class SendAckThread extends Thread {
-        @Override
-        public void run() {
-            sendMessage("ack");
-        }
-    }
-
-    int sendMessageCount = 0;
-
     private class SendMessageThread extends Thread {
-        String TAG = "SendMessageThread";
+        String msg;
+        InetAddress ipAddress;
+
+        SendMessageThread(String msg, InetAddress ipAddress) {
+            this.msg = msg;
+            this.ipAddress = ipAddress;
+        }
 
         @Override
         public void run() {
-            try {
-                Thread.sleep(500); // The sender delays sending for 1 second to fall into the receiving area
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            sendMessage(String.valueOf(sendMessageCount) + '\0');
-            Log.i(TAG, "Packet sended " + sendMessageCount);
-            sendMessageCount++;
+            sendMessage(msg, ipAddress);
         }
     }
+
 
     private Handler handler = new Handler() {
         @Override
