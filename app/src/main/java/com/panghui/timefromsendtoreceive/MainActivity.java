@@ -30,6 +30,8 @@ import java.net.InetAddress;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.util.Calendar;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -86,6 +88,8 @@ public class MainActivity extends AppCompatActivity {
      * Network communication related
      */
     InetAddress broadcastAddress;
+    long delayTime = 2500;
+    Timer delayTimer; // Delay timer
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -100,6 +104,9 @@ public class MainActivity extends AppCompatActivity {
         StartSim = findViewById(R.id.startSim);
         Reset = findViewById(R.id.reset);
         LogMessage = findViewById(R.id.logMessage);
+
+        /**Delay timer*/
+        delayTimer = new Timer();
 
         StartSim.setOnClickListener(new View.OnClickListener() {
 
@@ -182,6 +189,13 @@ public class MainActivity extends AppCompatActivity {
 
     private void enableWifi() {
         wifiManager.setWifiEnabled(true);
+        delayTimer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                new SendMessageThread("beacon", broadcastAddress).start();
+                new ListenThread().start();
+            }
+        }, delayTime);
     }
 
     private void disableWifi() {
@@ -277,8 +291,8 @@ public class MainActivity extends AppCompatActivity {
                     Log.i("realLocalIp: ", realLocalIp);
                     if (realLocalIp.equals(localIp)) isTickTrack = true; // go into tick track
                     if (isTickTrack) {
-                        new SendMessageThread("beacon", broadcastAddress).start();
-                        new ListenThread().start();
+                        //new SendMessageThread("beacon", broadcastAddress).start();
+                        //new ListenThread().start();
                     }
 
                 } else if (info.getState().equals(NetworkInfo.State.DISCONNECTED)) { // disconnect to wifi
@@ -305,7 +319,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onReceive(Context context, Intent intent) {
             if (pushStart) {
-                timeStart = System.currentTimeMillis() + 2000; // get current system time,2000 is the time required to switch wifi to connect to the network
+                timeStart = System.currentTimeMillis() + delayTime; // get current system time,2000 is the time required to switch wifi to connect to the network
                 logMessage = "Tick Start\n";
                 handler.obtainMessage(UPDATE_TEXT).sendToTarget();
                 try {
@@ -327,13 +341,12 @@ public class MainActivity extends AppCompatActivity {
     private class WifiController extends Thread {
         @Override
         public void run() {
-            long time = System.currentTimeMillis();
             logMessage = "WifiController - " + wifiControllerStartCount + "\n";
             handler.obtainMessage(UPDATE_TEXT).sendToTarget();
             wifiControllerStartCount++;
             try {
                 enableWifi();
-                Thread.sleep(beaconSendTime + listeningTime + 2000); // set the On period, 2000ms is the time from opening wifi to connecting to the network
+                Thread.sleep(delayTime + beaconSendTime + listeningTime); // set the On period, 2000ms is the time from opening wifi to connecting to the network
                 disableWifi();
             } catch (InterruptedException ie) {
                 ie.printStackTrace();
@@ -395,7 +408,7 @@ public class MainActivity extends AppCompatActivity {
                 byte[] inBuf = new byte[1024];
                 rds = new DatagramSocket(receivePort);
                 DatagramPacket inPacket = new DatagramPacket(inBuf, inBuf.length);
-                rds.setSoTimeout(1000); // 1000ms to timeout
+                rds.setSoTimeout((int) listeningTime); // listeningTime to timeout
 
                 while (isLocalpacket) {
                     rds.receive(inPacket);
@@ -415,7 +428,7 @@ public class MainActivity extends AppCompatActivity {
                         } else if (rdata.trim().equals("ack")) {
                             Log.i(TAG, localIpAddress + "receive " + rdata + ipAddress);
                             timeFind = System.currentTimeMillis(); // get the time of discovery
-                            saveToFile(SendorListen.listen, rdata + "timeReceiving: " + (timeFind - timeStart) + "\n");// save every time to a file
+                            //saveToFile(SendorListen.listen, rdata + "timeReceiving: " + (timeFind - timeStart) + "\n");// save every time to a file
 
                             // iFindYou = true; // i find you
                             logMessage = "receive ack - " + (timeFind - timeStart) + "\n";
@@ -445,11 +458,10 @@ public class MainActivity extends AppCompatActivity {
             int sendPort = 23000;
             ds = new DatagramSocket();
             ds.setBroadcast(true);
-            //InetAddress broadcastAddress = InetAddress.getByName("192.168.1.255");
             DatagramPacket dp = new DatagramPacket(str.getBytes(), str.getBytes().length, ipAddress, sendPort);
             long timeSending = System.currentTimeMillis();
             ds.send(dp);
-            saveToFile(SendorListen.send, str + "timeSending: " + timeSending + "\n"); // save every sending time to a file
+            //saveToFile(SendorListen.send, str + "timeSending: " + timeSending + "\n"); // save every sending time to a file
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
@@ -461,6 +473,7 @@ public class MainActivity extends AppCompatActivity {
      * used to send beacon or ack,msg can contain beacon or ack
      */
     private class SendMessageThread extends Thread {
+        String TAG = "SendMessageThread";
         String msg;
         InetAddress ipAddress;
 
@@ -472,6 +485,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void run() {
             sendMessage(msg, ipAddress);
+            Log.i(TAG, msg);
         }
     }
 
@@ -487,4 +501,9 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        delayTimer.cancel(); // cancel this delayTimer
+    }
 }
