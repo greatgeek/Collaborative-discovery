@@ -36,5 +36,9 @@ network={
 }
 ```
 
+### time synchronize
+Before the experiment, you need to synchronize the device time. This software can synchronize thime.
+[ClockSync](https://github.com/greatgeek/Collaborative-discovery/releases)
+
 
 
