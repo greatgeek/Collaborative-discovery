@@ -47,8 +47,8 @@ public class MainActivity extends AppCompatActivity {
         filter.addAction(WifiManager.WIFI_STATE_CHANGED_ACTION);
         filter.addAction(ConnectivityManager.EXTRA_NO_CONNECTIVITY);
 
-        //registerReceiver(broadcastReceiverSend,filter);
-        registerReceiver(broadcastReceiverReceive,filter);
+        registerReceiver(broadcastReceiverSend,filter);
+        //registerReceiver(broadcastReceiverReceive,filter);
 
         enableWifi();
     }
@@ -189,7 +189,8 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void run() {
             for(int i=0;i<100;i++){
-                sendMessage(String.valueOf(i)+'\0');
+                long time=System.currentTimeMillis();
+                sendMessage(String.valueOf(time)+'\0');
                 Log.i(TAG,"Packet sended "+i);
                 try{
                     Thread.sleep(1000); // sleep 1000 ms to send next packet
