@@ -19,6 +19,7 @@ import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.Switch;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.net.DatagramPacket;
@@ -46,11 +47,10 @@ public class MainActivity extends AppCompatActivity {
     String filename = "timedata" + year + month + day + "_" + hour + "_" + min;// File name consisting of date and time
     String localIp = IpMaker.getRandomIp();
 
-    public enum SendorListen {send, listen}
-
     /**
      * UI components
      */
+    private TextView IPaddress;
     private EditText BeaconSendTime;
     private EditText ListeningTime;
     private EditText WorkingPeriod;
@@ -116,6 +116,11 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+    void displayToUI(String str){
+        logMessage = str;
+        handler.obtainMessage(UPDATE_TEXT).sendToTarget();
+    }
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -123,6 +128,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         /**UI components*/
+        IPaddress=findViewById(R.id.ipAddress);
         BeaconSendTime = findViewById(R.id.beaconSendTime);
         ListeningTime = findViewById(R.id.listeningTime);
         WorkingPeriod = findViewById(R.id.workingPeriod);
@@ -131,6 +137,9 @@ public class MainActivity extends AppCompatActivity {
         Reset = findViewById(R.id.reset);
         FreeModel = findViewById(R.id.freeModel);
         LogMessage = findViewById(R.id.logMessage);
+
+        // display IP address
+        IPaddress.setText(localIp);
 
         // Initialization start and reset button
         StartSim.setEnabled(true);
@@ -182,13 +191,11 @@ public class MainActivity extends AppCompatActivity {
                         startTimer();
                     } else {
                         pushStart = true;
+                        displayToUI("push the start button\n");
                     }
                     iFindYou = false;
                     StartSim.setEnabled(false); // Do not allow click the button
                     Reset.setEnabled(true);
-
-                    logMessage = "push the start button\n";
-                    handler.obtainMessage(UPDATE_TEXT).sendToTarget(); // update UI
                 }
             }
         });
@@ -267,9 +274,9 @@ public class MainActivity extends AppCompatActivity {
         }
 
         Log.i("Test", "Start at " + System.currentTimeMillis());
+
         timeStart = System.currentTimeMillis() + delayTime; // get current system time,2000 is the time required to switch wifi to connect to the network
-        logMessage = "Start at " + timeStart +"\n";
-        handler.obtainMessage(UPDATE_TEXT).sendToTarget();
+        displayToUI("Start at " + timeStart + "\n");
 
         if (periodTimer != null && periodTimerTask != null) {
             periodTimer.scheduleAtFixedRate(periodTimerTask, phaseDifference + beaconSendTime, workingPeriod);
@@ -294,8 +301,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void run() {
             Log.i("Test", "Period start at " + System.currentTimeMillis());
-            logMessage = "ActiveTask - " + periodCount++ + "\n";
-            handler.obtainMessage(UPDATE_TEXT).sendToTarget();
+            displayToUI("ActiveTask - " + periodCount++ + "\n");
 
             new Timer().schedule(new TimerTask() {
                 @Override
@@ -439,6 +445,7 @@ public class MainActivity extends AppCompatActivity {
 
                 // listen util timeout even receive a packet
                 rds.receive(inPacket);
+                displayToUI("receive @ "+System.currentTimeMillis()+"\n");
 
                 // Filter local UDP packets
                 InetAddress ipAddress = inPacket.getAddress();
@@ -449,15 +456,15 @@ public class MainActivity extends AppCompatActivity {
                     if (rdata.trim().equals("beacon")) {
                         //new SendMessageThread("ack", ipAddress).start(); // send a ACK back
                         timeFind = System.currentTimeMillis();
-                        logMessage = "receive beacon - " + (timeFind - timeStart) + "\n";
+                        displayToUI("receive beacon @ " + (timeFind - timeStart) + " from "+ipAddress.toString()+"\n");
+                        displayToUI("send @ "+System.currentTimeMillis()+"\n");
+
                         sendMessage("ack", ipAddress);
-                        handler.obtainMessage(UPDATE_TEXT).sendToTarget();
                     } else if (rdata.trim().equals("ack")) {
                         Log.i(TAG, localIpAddress + "receive " + rdata + ipAddress);
                         timeFind = System.currentTimeMillis(); // get the time of discovery
                         // iFindYou = true; // i find you
-                        logMessage = "receive ack - " + (timeFind - timeStart) + "\n";
-                        handler.obtainMessage(UPDATE_TEXT).sendToTarget();
+                        displayToUI("receive ack @ " + (timeFind - timeStart) + " from "+ipAddress.toString()+"\n");
                     }
                 }
             } catch (SocketTimeoutException e) {
@@ -488,199 +495,3 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 }
-
-
-/**
- * used to send beacon or ack,msg can contain beacon or ack
- *
- * @param str save str to a file
- * <p>
- * This function is used to execute shell commands
- * @param command
- * @return
- * @param str save str to a file
- * <p>
- * This function is used to execute shell commands
- * @param command
- * @return
- * @param str save str to a file
- * <p>
- * This function is used to execute shell commands
- * @param command
- * @return
- * @param str save str to a file
- * <p>
- * This function is used to execute shell commands
- * @param command
- * @return
- * @param str save str to a file
- * <p>
- * This function is used to execute shell commands
- * @param command
- * @return
- * @param str save str to a file
- * <p>
- * This function is used to execute shell commands
- * @param command
- * @return
- */
-/*private class SendMessageThread extends Thread {
-    String TAG = "SendMessageThread";
-    String msg;
-    InetAddress ipAddress;
-
-    SendMessageThread(String msg, InetAddress ipAddress) {
-        this.msg = msg;
-        this.ipAddress = ipAddress;
-    }
-
-    @Override
-    public void run() {
-        sendMessage(msg, ipAddress);
-        Log.i(TAG, msg);
-    }
-}
-
-private class ListenThread extends Thread {
-    String TAG = "ListenThread";
-    DatagramSocket rds = null;
-    boolean isLocalpacket = true; // checkout if it's a local package
-
-    @Override
-    public void run() {
-        try {
-            int receivePort = 23000;
-            byte[] inBuf = new byte[1024];
-            rds = new DatagramSocket(receivePort);
-            DatagramPacket inPacket = new DatagramPacket(inBuf, inBuf.length);
-            rds.setSoTimeout((int) listeningTime); // listeningTime to timeout
-
-            while (isLocalpacket) {
-                rds.receive(inPacket);
-
-                // Filter local UDP packets
-                InetAddress ipAddress = inPacket.getAddress();
-                String realLocalIp = Formatter.formatIpAddress(wifiManager.getConnectionInfo().getIpAddress());
-                InetAddress localIpAddress = InetAddress.getByName(realLocalIp);
-                if (!ipAddress.toString().equals(localIpAddress.toString())) {
-                    isLocalpacket = false;
-                    String rdata = new String(inPacket.getData());// parse content from UDP packet
-                    if (rdata.trim().equals("beacon")) {
-                        new SendMessageThread("ack", ipAddress).start(); // send a ACK back
-                        timeFind = System.currentTimeMillis();
-                        logMessage = "receive beacon - " + (timeFind - timeStart) + "\n";
-                        handler.obtainMessage(UPDATE_TEXT).sendToTarget();
-                    } else if (rdata.trim().equals("ack")) {
-                        Log.i(TAG, localIpAddress + "receive " + rdata + ipAddress);
-                        timeFind = System.currentTimeMillis(); // get the time of discovery
-                        //saveToFile(SendorListen.listen, rdata + "timeReceiving: " + (timeFind - timeStart) + "\n");// save every time to a file
-
-                        // iFindYou = true; // i find you
-                        logMessage = "receive ack - " + (timeFind - timeStart) + "\n";
-                        handler.obtainMessage(UPDATE_TEXT).sendToTarget();
-                    }
-                }
-            }
-
-            rds.close();
-            Log.i(TAG, "ListenThread is end");
-        } catch (SocketTimeoutException e) {
-            isLocalpacket = false;
-            e.printStackTrace();
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            isLocalpacket = false;
-            rds.close();
-        }
-    }
-}*/
-
-
-/***
- *
- * @param str save str to a file
- */
-/*    public void saveToFile(SendorListen flag, String str) {
-        FileOutputStream out = null;
-        BufferedWriter writer = null;
-        try {
-            if (flag == SendorListen.send)
-                out = openFileOutput("send_" + filename, Context.MODE_APPEND);
-            if (flag == SendorListen.listen)
-                out = openFileOutput("receive_" + filename, Context.MODE_APPEND);
-            writer = new BufferedWriter(new OutputStreamWriter(out));
-            writer.write(str);
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            try {
-                if (writer != null) writer.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-    }*/
-
-
-/**
- * This function is used to execute shell commands
- *
- * @param command
- * @return
- */
-/*    public boolean runRootCommand(String command) {
-        Process process = null;
-        DataOutputStream os = null;
-        try {
-            process = Runtime.getRuntime().exec("su");
-            os = new DataOutputStream(process.getOutputStream());
-            os.writeBytes(command + "\n");
-            os.writeBytes("exit\n");
-            os.flush();
-            process.waitFor();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
-        } finally {
-            try {
-                if (os != null) {
-                    os.close();
-                }
-                process.destroy();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-        return true;
-    }*/
-
-/*
-
-int wifiControllerStartCount = 0;
-private class ActiveTask extends Thread {
-    @Override
-    public void run() {
-        logMessage = "ActiveTask - " + wifiControllerStartCount + "\n";
-        handler.obtainMessage(UPDATE_TEXT).sendToTarget();
-        wifiControllerStartCount++;
-
-        new Timer().schedule(new TimerTask() {
-            @Override
-            public void run() {
-                sendMessage("beacon", broadcastAddress);
-                listen();
-            }
-        }, delayTime);
-
-        new Timer().schedule(new TimerTask() {
-            @Override
-            public void run() {
-                disableWifi();
-            }
-        }, delayTime + beaconSendTime + listeningTime);
-        // 打开wifi动作的delayTime后发Beacon，打开wifi动作的 delayTime + beaconSendTime + listeningTime后关闭侦听
-        enableWifi();
-    }
-}
-*/
