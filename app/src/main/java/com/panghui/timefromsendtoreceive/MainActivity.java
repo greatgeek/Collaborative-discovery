@@ -22,6 +22,10 @@ import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.BufferedWriter;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -44,7 +48,7 @@ public class MainActivity extends AppCompatActivity {
     int min = calendar.get(Calendar.MINUTE);
     boolean alreadyConfigureIp = false;
 
-    String filename = "timedata" + year + month + day + "_" + hour + "_" + min;// File name consisting of date and time
+    String filename = "receiveACK" + year + month + day;// + "_" + hour + "_" + min;// File name consisting of date and time
     String localIp = IpMaker.getRandomIp();
 
     /**
@@ -104,6 +108,13 @@ public class MainActivity extends AppCompatActivity {
      * Free Mode
      */
     boolean isFreeMode = false;
+
+    /**
+     * random number array
+     */
+    int randomNumberCount=100;
+    long[] randomNumberArray=new long[randomNumberCount];
+    int randomArrayIndex=0;
 
     Handler handler = new Handler() {
         @Override
@@ -180,6 +191,8 @@ public class MainActivity extends AppCompatActivity {
                     workingPeriod = Long.parseLong(WorkingPeriod.getText().toString());
                     phaseDifference = Long.parseLong(PhaseDifference.getText().toString());
 
+                    for(int i=0;i<randomNumberCount;i++) randomNumberArray[i]=(long) Math.random()*phaseDifference;
+
                     // Do not allow changes to experiment parameters after clicking Start
                     BeaconSendTime.setEnabled(false);
                     ListeningTime.setEnabled(false);
@@ -237,6 +250,7 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+
     private void enableWifi() {
         wifiManager.setWifiEnabled(true);
     }
@@ -279,7 +293,7 @@ public class MainActivity extends AppCompatActivity {
         displayToUI("Start at " + timeStart + "\n");
 
         if (periodTimer != null && periodTimerTask != null) {
-            periodTimer.scheduleAtFixedRate(periodTimerTask, phaseDifference + beaconSendTime, workingPeriod);
+            periodTimer.scheduleAtFixedRate(periodTimerTask, randomNumberArray[randomArrayIndex] + beaconSendTime, workingPeriod);
         }
     }
 
@@ -409,7 +423,27 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    ;
+    /***
+     *
+     * @param str save str to a file
+     */
+    public void saveToFile(String str) {
+        FileOutputStream out = null;
+        BufferedWriter writer = null;
+        try {
+            out = openFileOutput(filename, Context.MODE_APPEND);
+            writer = new BufferedWriter(new OutputStreamWriter(out));
+            writer.write(str);
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (writer != null) writer.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
 
 
     private void sendMessage(String str, InetAddress ipAddress) {
@@ -426,6 +460,14 @@ public class MainActivity extends AppCompatActivity {
         } finally {
             if (ds != null) ds.close();
         }
+    }
+
+    private void freshStart(){
+        LogMessage.setText(""); // clear log output
+        stopTimer();
+        randomArrayIndex++;
+        iFindYou=false;
+        pushStart=true;
     }
 
     private void listen() {
@@ -464,7 +506,9 @@ public class MainActivity extends AppCompatActivity {
                         Log.i(TAG, localIpAddress + "receive " + rdata + ipAddress);
                         timeFind = System.currentTimeMillis(); // get the time of discovery
                         // iFindYou = true; // i find you
+                        freshStart();
                         displayToUI("receive ack @ " + (timeFind - timeStart) + " from "+ipAddress.toString()+"\n");
+                        saveToFile(String.valueOf(timeFind - timeStart));
                     }
                 }
             } catch (SocketTimeoutException e) {
