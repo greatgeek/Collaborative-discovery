@@ -32,7 +32,6 @@ import java.net.InetAddress;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -112,9 +111,11 @@ public class MainActivity extends AppCompatActivity {
     /**
      * random number array
      */
-    int randomNumberCount=100;
+    int randomNumberCount=1000;
     long[] randomNumberArray=new long[randomNumberCount];
     int randomArrayIndex=0;
+
+    int w_Hat=500;
 
     Handler handler = new Handler() {
         @Override
@@ -463,7 +464,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void freshStart(){
-        LogMessage.setText(""); // clear log output
+        //LogMessage.setText(""); // clear log output
         stopTimer();
         randomArrayIndex++;
         iFindYou=false;
@@ -501,14 +502,17 @@ public class MainActivity extends AppCompatActivity {
                         displayToUI("receive beacon @ " + (timeFind - timeStart) + " from "+ipAddress.toString()+"\n");
                         displayToUI("send @ "+System.currentTimeMillis()+"\n");
 
+                        saveToFile("B"+randomArrayIndex+": "+String.valueOf(timeFind - timeStart)+"\n");
+                        freshStart();
+
                         sendMessage("ack", ipAddress);
                     } else if (rdata.trim().equals("ack")) {
                         Log.i(TAG, localIpAddress + "receive " + rdata + ipAddress);
                         timeFind = System.currentTimeMillis(); // get the time of discovery
                         // iFindYou = true; // i find you
-                        freshStart();
                         displayToUI("receive ack @ " + (timeFind - timeStart) + " from "+ipAddress.toString()+"\n");
-                        saveToFile(String.valueOf(timeFind - timeStart));
+                        saveToFile("A"+randomArrayIndex+": "+String.valueOf(timeFind - timeStart)+"\n");
+                        freshStart();
                     }
                 }
             } catch (SocketTimeoutException e) {
