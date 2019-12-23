@@ -47,7 +47,7 @@ public class MainActivity extends AppCompatActivity {
     int min = calendar.get(Calendar.MINUTE);
     boolean alreadyConfigureIp = false;
 
-    String filename = "receiveACK" + year + month + day;// + "_" + hour + "_" + min;// File name consisting of date and time
+    String filename = "receiveACK" + year + month + day + "_" + hour + "_" + min;// File name consisting of date and time
     String localIp = IpMaker.getRandomIp();
 
     /**
@@ -192,7 +192,7 @@ public class MainActivity extends AppCompatActivity {
                     workingPeriod = Long.parseLong(WorkingPeriod.getText().toString());
                     phaseDifference = Long.parseLong(PhaseDifference.getText().toString());
 
-                    for(int i=0;i<randomNumberCount;i++) randomNumberArray[i]=(long) Math.random()*phaseDifference;
+                    for(int i=0;i<randomNumberCount;i++) randomNumberArray[i]=(long) Math.random()*10*w_Hat;
 
                     // Do not allow changes to experiment parameters after clicking Start
                     BeaconSendTime.setEnabled(false);
