@@ -61,6 +61,7 @@ public class MainActivity extends AppCompatActivity {
     private Button StartSim;
     private Button Reset;
     private Switch FreeModel;
+    private Switch BeaconToFind, AckToFind;
     private EditText LogMessage;
 
     static final int UPDATE_TEXT = 1;
@@ -109,13 +110,19 @@ public class MainActivity extends AppCompatActivity {
     boolean isFreeMode = false;
 
     /**
+     * Beacon to find and Ack to find
+     */
+
+    boolean beaconToFind = false;
+    boolean ackToFind = false;
+    /**
      * random number array
      */
-    int randomNumberCount=1000;
-    long[] randomNumberArray=new long[randomNumberCount];
-    int randomArrayIndex=0;
+    int randomNumberCount = 1000;
+    long[] randomNumberArray = new long[randomNumberCount];
+    int randomArrayIndex = 0;
 
-    int w_Hat=500;
+    int w_Hat = 500;
 
     Handler handler = new Handler() {
         @Override
@@ -128,7 +135,7 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-    void displayToUI(String str){
+    void displayToUI(String str) {
         logMessage = str;
         handler.obtainMessage(UPDATE_TEXT).sendToTarget();
     }
@@ -140,7 +147,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         /**UI components*/
-        IPaddress=findViewById(R.id.ipAddress);
+        IPaddress = findViewById(R.id.ipAddress);
         BeaconSendTime = findViewById(R.id.beaconSendTime);
         ListeningTime = findViewById(R.id.listeningTime);
         WorkingPeriod = findViewById(R.id.workingPeriod);
@@ -148,6 +155,8 @@ public class MainActivity extends AppCompatActivity {
         StartSim = findViewById(R.id.startSim);
         Reset = findViewById(R.id.reset);
         FreeModel = findViewById(R.id.freeModel);
+        BeaconToFind = findViewById(R.id.beaconToFind);
+        AckToFind = findViewById(R.id.AckToFind);
         LogMessage = findViewById(R.id.logMessage);
 
         // display IP address
@@ -192,7 +201,8 @@ public class MainActivity extends AppCompatActivity {
                     workingPeriod = Long.parseLong(WorkingPeriod.getText().toString());
                     phaseDifference = Long.parseLong(PhaseDifference.getText().toString());
 
-                    for(int i=0;i<randomNumberCount;i++) randomNumberArray[i]=(long) Math.random()*10*w_Hat;
+                    for (int i = 0; i < randomNumberCount; i++)
+                        randomNumberArray[i] = (long) Math.random() * 10 * phaseDifference;
 
                     // Do not allow changes to experiment parameters after clicking Start
                     BeaconSendTime.setEnabled(false);
@@ -229,6 +239,8 @@ public class MainActivity extends AppCompatActivity {
                 StartSim.setEnabled(true); // allow click the button
                 stopTimer();
                 FreeModel.setChecked(false);
+                BeaconToFind.setChecked(false);
+                AckToFind.setChecked(false);
                 periodCount = 0;
             }
         });
@@ -246,6 +258,32 @@ public class MainActivity extends AppCompatActivity {
                     mRegisterTickReceiver(mTickReceiver, tickFilter);
                     stopTimer();
                     Toast.makeText(MainActivity.this, "free Mode is off", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+
+        BeaconToFind.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (isChecked) {
+                    beaconToFind = true;
+                    Toast.makeText(MainActivity.this, "receive Beacon to find", Toast.LENGTH_SHORT).show();
+                } else {
+                    beaconToFind = false;
+                    Toast.makeText(MainActivity.this, "don't receive Beacon to find", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+
+        AckToFind.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (isChecked) {
+                    ackToFind = true;
+                    Toast.makeText(MainActivity.this, "receive Ack to find", Toast.LENGTH_SHORT).show();
+                } else {
+                    ackToFind = false;
+                    Toast.makeText(MainActivity.this, "don't receive Ack to find", Toast.LENGTH_SHORT).show();
                 }
             }
         });
@@ -290,11 +328,12 @@ public class MainActivity extends AppCompatActivity {
 
         Log.i("Test", "Start at " + System.currentTimeMillis());
 
-        timeStart = System.currentTimeMillis() + delayTime; // get current system time,2000 is the time required to switch wifi to connect to the network
+        long randomDifference = randomNumberArray[randomArrayIndex];
+        timeStart = System.currentTimeMillis() + delayTime + randomDifference; // get current system time,2000 is the time required to switch wifi to connect to the network
         displayToUI("Start at " + timeStart + "\n");
 
         if (periodTimer != null && periodTimerTask != null) {
-            periodTimer.scheduleAtFixedRate(periodTimerTask, randomNumberArray[randomArrayIndex] + beaconSendTime, workingPeriod);
+            periodTimer.scheduleAtFixedRate(periodTimerTask, randomDifference + beaconSendTime, workingPeriod);
         }
     }
 
@@ -323,8 +362,8 @@ public class MainActivity extends AppCompatActivity {
                 public void run() {
                     Log.i("Test", "Send udp at " + System.currentTimeMillis());
                     sendMessage("beacon", broadcastAddress);
-                    Log.i("Test", "Stop listen at " + System.currentTimeMillis());
                     listen();
+                    Log.i("Test", "Stop listen at " + System.currentTimeMillis());
                     disableWifi();
                 }
             }, delayTime);
@@ -463,12 +502,12 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void freshStart(){
+    private void freshStart() {
         //LogMessage.setText(""); // clear log output
         stopTimer();
         randomArrayIndex++;
-        iFindYou=false;
-        pushStart=true;
+        iFindYou = false;
+        pushStart = true;
     }
 
     private void listen() {
@@ -488,7 +527,7 @@ public class MainActivity extends AppCompatActivity {
 
                 // listen util timeout even receive a packet
                 rds.receive(inPacket);
-                displayToUI("receive @ "+System.currentTimeMillis()+"\n");
+                displayToUI("receive @ " + System.currentTimeMillis() + "\n");
 
                 // Filter local UDP packets
                 InetAddress ipAddress = inPacket.getAddress();
@@ -499,20 +538,24 @@ public class MainActivity extends AppCompatActivity {
                     if (rdata.trim().equals("beacon")) {
                         //new SendMessageThread("ack", ipAddress).start(); // send a ACK back
                         timeFind = System.currentTimeMillis();
-                        displayToUI("receive beacon @ " + (timeFind - timeStart) + " from "+ipAddress.toString()+"\n");
-                        displayToUI("send @ "+System.currentTimeMillis()+"\n");
+                        displayToUI("receive beacon @ " + (timeFind - timeStart) + " from " + ipAddress.toString() + "\n");
+                        displayToUI("send @ " + System.currentTimeMillis() + "\n");
 
-                        saveToFile("B"+randomArrayIndex+": "+String.valueOf(timeFind - timeStart)+"\n");
-                        freshStart();
-
+                        if (beaconToFind) {
+                            saveToFile("B" + randomArrayIndex + ": " + String.valueOf(timeFind - timeStart) + "\n");
+                            freshStart();
+                        }
                         sendMessage("ack", ipAddress);
                     } else if (rdata.trim().equals("ack")) {
                         Log.i(TAG, localIpAddress + "receive " + rdata + ipAddress);
                         timeFind = System.currentTimeMillis(); // get the time of discovery
                         // iFindYou = true; // i find you
-                        displayToUI("receive ack @ " + (timeFind - timeStart) + " from "+ipAddress.toString()+"\n");
-                        saveToFile("A"+randomArrayIndex+": "+String.valueOf(timeFind - timeStart)+"\n");
-                        freshStart();
+                        displayToUI("receive ack @ " + (timeFind - timeStart) + " from " + ipAddress.toString() + "\n");
+
+                        if (ackToFind) {
+                            saveToFile("A" + randomArrayIndex + ": " + String.valueOf(timeFind - timeStart) + "\n");
+                            freshStart();
+                        }
                     }
                 }
             } catch (SocketTimeoutException e) {

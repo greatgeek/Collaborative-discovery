@@ -129,6 +129,22 @@
             android:id="@+id/freeModel"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content" />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="beaconToFind: "/>
+        <Switch
+            android:id="@+id/beaconToFind"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="AckToFind: "/>
+        <Switch
+            android:id="@+id/AckToFind"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
     </LinearLayout>
 
     <LinearLayout
