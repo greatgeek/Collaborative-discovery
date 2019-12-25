@@ -61,7 +61,7 @@ public class MainActivity extends AppCompatActivity {
     private Button StartSim;
     private Button Reset;
     private Switch FreeModel;
-    private Switch BeaconToFind, AckToFind;
+    private Switch BeaconToFind;
     private EditText LogMessage;
 
     static final int UPDATE_TEXT = 1;
@@ -114,7 +114,6 @@ public class MainActivity extends AppCompatActivity {
      */
 
     boolean beaconToFind = false;
-    boolean ackToFind = false;
     /**
      * random number array
      */
@@ -156,7 +155,6 @@ public class MainActivity extends AppCompatActivity {
         Reset = findViewById(R.id.reset);
         FreeModel = findViewById(R.id.freeModel);
         BeaconToFind = findViewById(R.id.beaconToFind);
-        AckToFind = findViewById(R.id.AckToFind);
         LogMessage = findViewById(R.id.logMessage);
 
         // display IP address
@@ -240,7 +238,6 @@ public class MainActivity extends AppCompatActivity {
                 stopTimer();
                 FreeModel.setChecked(false);
                 BeaconToFind.setChecked(false);
-                AckToFind.setChecked(false);
                 periodCount = 0;
             }
         });
@@ -271,19 +268,6 @@ public class MainActivity extends AppCompatActivity {
                 } else {
                     beaconToFind = false;
                     Toast.makeText(MainActivity.this, "don't receive Beacon to find", Toast.LENGTH_SHORT).show();
-                }
-            }
-        });
-
-        AckToFind.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if (isChecked) {
-                    ackToFind = true;
-                    Toast.makeText(MainActivity.this, "receive Ack to find", Toast.LENGTH_SHORT).show();
-                } else {
-                    ackToFind = false;
-                    Toast.makeText(MainActivity.this, "don't receive Ack to find", Toast.LENGTH_SHORT).show();
                 }
             }
         });
@@ -552,10 +536,8 @@ public class MainActivity extends AppCompatActivity {
                         // iFindYou = true; // i find you
                         displayToUI("receive ack @ " + (timeFind - timeStart) + " from " + ipAddress.toString() + "\n");
 
-                        if (ackToFind) {
-                            saveToFile("A" + randomArrayIndex + ": " + String.valueOf(timeFind - timeStart) + "\n");
-                            freshStart();
-                        }
+                        saveToFile("A" + randomArrayIndex + ": " + String.valueOf(timeFind - timeStart) + "\n");
+                        freshStart();
                     }
                 }
             } catch (SocketTimeoutException e) {
