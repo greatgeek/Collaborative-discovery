@@ -526,7 +526,7 @@ public class MainActivity extends AppCompatActivity {
                         displayToUI("send @ " + System.currentTimeMillis() + "\n");
 
                         if (beaconToFind) {
-                            saveToFile("B" + randomArrayIndex + ": " + String.valueOf(timeFind - timeStart) + "\n");
+                            saveToFile("B" + randomArrayIndex + ": " +  (timeFind - timeStart) + "\n");
                             freshStart();
                         }
                         sendMessage("ack", ipAddress);
@@ -536,7 +536,7 @@ public class MainActivity extends AppCompatActivity {
                         // iFindYou = true; // i find you
                         displayToUI("receive ack @ " + (timeFind - timeStart) + " from " + ipAddress.toString() + "\n");
 
-                        saveToFile("A" + randomArrayIndex + ": " + String.valueOf(timeFind - timeStart) + "\n");
+                        saveToFile("A" + randomArrayIndex + ": " + (timeFind - timeStart) + "\n");
                         freshStart();
                     }
                 }
