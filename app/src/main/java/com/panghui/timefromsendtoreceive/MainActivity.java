@@ -10,6 +10,7 @@ import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiManager;
 import android.os.Handler;
 import android.os.Message;
+import android.os.SystemClock;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.format.Formatter;
@@ -60,6 +61,7 @@ public class MainActivity extends AppCompatActivity {
     private EditText PhaseDifference;
     private Button StartSim;
     private Button Reset;
+    private Button SendTimeStamp;
     private Switch FreeModel;
     private Switch BeaconToFind;
     private EditText LogMessage;
@@ -153,6 +155,7 @@ public class MainActivity extends AppCompatActivity {
         PhaseDifference = findViewById(R.id.phaseDifference);
         StartSim = findViewById(R.id.startSim);
         Reset = findViewById(R.id.reset);
+        SendTimeStamp = findViewById(R.id.sendTimeStamp);
         FreeModel = findViewById(R.id.freeModel);
         BeaconToFind = findViewById(R.id.beaconToFind);
         LogMessage = findViewById(R.id.logMessage);
@@ -219,6 +222,11 @@ public class MainActivity extends AppCompatActivity {
                     StartSim.setEnabled(false); // Do not allow click the button
                     Reset.setEnabled(true);
                 }
+
+                /**test to modify system time*/
+                /*
+                long curTime =  1577938221000L;
+                SystemClock.setCurrentTimeMillis(curTime);*/
             }
         });
 
@@ -239,6 +247,15 @@ public class MainActivity extends AppCompatActivity {
                 FreeModel.setChecked(false);
                 BeaconToFind.setChecked(false);
                 periodCount = 0;
+            }
+        });
+
+        SendTimeStamp.setOnClickListener(new View.OnClickListener(){
+
+            @Override
+            public void onClick(View v) {
+                new SendTimeStamp().start();
+                Toast.makeText(MainActivity.this, "send TimeStamp", Toast.LENGTH_SHORT).show();
             }
         });
 
@@ -485,6 +502,17 @@ public class MainActivity extends AppCompatActivity {
             if (ds != null) ds.close();
         }
     }
+
+    private class SendTimeStamp extends Thread {
+
+        @Override
+        public void run() {
+            long time = System.currentTimeMillis();
+            sendMessage(String.valueOf(time),broadcastAddress);
+        }
+    }
+
+
 
     private void freshStart() {
         //LogMessage.setText(""); // clear log output

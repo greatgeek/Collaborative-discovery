@@ -159,6 +159,14 @@
             android:layout_weight="1"
             android:text="Reset"
             android:textAllCaps="false" />
+
+        <Button
+            android:id="@+id/sendTimeStamp"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="sendTimeStamp"
+            android:textAllCaps="false" />
     </LinearLayout>
 
     <LinearLayout
