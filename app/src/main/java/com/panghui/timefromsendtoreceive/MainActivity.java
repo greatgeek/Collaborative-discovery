@@ -10,6 +10,7 @@ import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiManager;
 import android.os.Handler;
 import android.os.Message;
+import android.os.SystemClock;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.format.Formatter;
@@ -57,6 +58,7 @@ public class MainActivity extends AppCompatActivity {
     private EditText PhaseDifference;
     private Button StartSim;
     private Button Reset;
+    private Button ReceiveTime;
     private Switch FreeModel;
     private EditText LogMessage;
 
@@ -135,6 +137,7 @@ public class MainActivity extends AppCompatActivity {
         PhaseDifference = findViewById(R.id.phaseDifference);
         StartSim = findViewById(R.id.startSim);
         Reset = findViewById(R.id.reset);
+        ReceiveTime = findViewById(R.id.receiveTime);
         FreeModel = findViewById(R.id.freeModel);
         LogMessage = findViewById(R.id.logMessage);
 
@@ -216,6 +219,14 @@ public class MainActivity extends AppCompatActivity {
                 stopTimer();
                 FreeModel.setChecked(false);
                 periodCount = 0;
+            }
+        });
+
+        ReceiveTime.setOnClickListener(new View.OnClickListener(){
+
+            @Override
+            public void onClick(View v) {
+                new ReceiveTimeStamp().start();
             }
         });
 
@@ -465,6 +476,10 @@ public class MainActivity extends AppCompatActivity {
                         timeFind = System.currentTimeMillis(); // get the time of discovery
                         // iFindYou = true; // i find you
                         displayToUI("receive ack @ " + (timeFind - timeStart) + " from "+ipAddress.toString()+"\n");
+                    }else{ // receive time stamp and set System time
+                        long time = Long.parseLong(rdata);
+                        SystemClock.setCurrentTimeMillis(time);
+                        displayToUI("receive time stamp");
                     }
                 }
             } catch (SocketTimeoutException e) {
@@ -477,6 +492,47 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         } while (stopListenTime > System.currentTimeMillis());
+    }
+
+    private class ReceiveTimeStamp extends Thread {
+        @Override
+        public void run() {
+            String TAG = "ReceiveTimeStamp";
+            DatagramSocket rds = null;
+                try {
+                    int receivePort = 23000;
+                    byte[] inBuf = new byte[1024];
+                    rds = new DatagramSocket(receivePort);
+                    DatagramPacket inPacket = new DatagramPacket(inBuf, inBuf.length);
+
+                    rds.setSoTimeout(10000); // listeningTime to timeout
+
+                    // listen util timeout even receive a packet
+                    rds.receive(inPacket);
+                    displayToUI("receive @ "+System.currentTimeMillis()+"\n");
+
+                    // Filter local UDP packets
+                    InetAddress ipAddress = inPacket.getAddress();
+                    String realLocalIp = Formatter.formatIpAddress(wifiManager.getConnectionInfo().getIpAddress());
+                    InetAddress localIpAddress = InetAddress.getByName(realLocalIp);
+                    if (!ipAddress.toString().equals(localIpAddress.toString())) {
+                        String rdata = new String(inPacket.getData());// parse content from UDP packet
+                       // receive time stamp and set System time
+                            long time = Long.parseLong(rdata.trim());
+                            displayToUI("rdata @ "+ (time-System.currentTimeMillis()) +"\n");
+                            boolean res = SystemClock.setCurrentTimeMillis(time);
+                            if(res) displayToUI("receive time stamp"+"\n");
+                    }
+                } catch (SocketTimeoutException e) {
+                    Log.e(TAG, "listen timeout");
+                } catch (Exception e) {
+                    e.printStackTrace();
+                } finally {
+                    if (rds != null && !rds.isClosed()) {
+                        rds.close();
+                    }
+                }
+        }
     }
 
 
