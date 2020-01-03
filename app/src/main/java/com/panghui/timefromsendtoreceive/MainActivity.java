@@ -222,11 +222,6 @@ public class MainActivity extends AppCompatActivity {
                     StartSim.setEnabled(false); // Do not allow click the button
                     Reset.setEnabled(true);
                 }
-
-                /**test to modify system time*/
-                /*
-                long curTime =  1577938221000L;
-                SystemClock.setCurrentTimeMillis(curTime);*/
             }
         });
 
@@ -553,7 +548,6 @@ public class MainActivity extends AppCompatActivity {
                         //new SendMessageThread("ack", ipAddress).start(); // send a ACK back
                         timeFind = System.currentTimeMillis();
                         displayToUI("receive beacon @ " + (timeFind - timeStart) + " from " + ipAddress.toString() + "\n");
-                        displayToUI("send @ " + System.currentTimeMillis() + "\n");
 
                         if (beaconToFind) {
                             saveToFile("B" + randomArrayIndex + ": " +  (timeFind - timeStart) + "\n");
@@ -597,7 +591,8 @@ public class MainActivity extends AppCompatActivity {
 
                 // listen util timeout even receive a packet
                 rds.receive(inPacket);
-                displayToUI("receive @ "+System.currentTimeMillis()+"\n");
+                long curTime = System.currentTimeMillis();
+                displayToUI("receive @ "+curTime+"\n");
 
                 // Filter local UDP packets
                 InetAddress ipAddress = inPacket.getAddress();
@@ -607,7 +602,8 @@ public class MainActivity extends AppCompatActivity {
                     String rdata = new String(inPacket.getData());// parse content from UDP packet
                     // receive time stamp and set System time
                     long time = Long.parseLong(rdata.trim());
-                    displayToUI("difference @ "+ (time-System.currentTimeMillis()) +"\n");
+                    long curSysTime=System.currentTimeMillis();
+                    displayToUI("receive @ "+ curSysTime +"\n");
                    /* boolean res = SystemClock.setCurrentTimeMillis(time+beaconSendTime);
                     if(res) displayToUI("set time successfully"+"\n");*/
                 }
