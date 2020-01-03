@@ -509,6 +509,8 @@ public class MainActivity extends AppCompatActivity {
         public void run() {
             long time = System.currentTimeMillis();
             sendMessage(String.valueOf(time),broadcastAddress);
+            displayToUI("send @ "+time+"\n");
+            new ReceiveTimeStamp().start();
         }
     }
 
@@ -579,6 +581,49 @@ public class MainActivity extends AppCompatActivity {
             }
         } while (stopListenTime > System.currentTimeMillis());
     }
+
+    private class ReceiveTimeStamp extends Thread {
+        @Override
+        public void run() {
+            String TAG = "ReceiveTimeStamp";
+            DatagramSocket rds = null;
+            try {
+                int receivePort = 23000;
+                byte[] inBuf = new byte[1024];
+                rds = new DatagramSocket(receivePort);
+                DatagramPacket inPacket = new DatagramPacket(inBuf, inBuf.length);
+
+                rds.setSoTimeout(10000); // listeningTime to timeout
+
+                // listen util timeout even receive a packet
+                rds.receive(inPacket);
+                displayToUI("receive @ "+System.currentTimeMillis()+"\n");
+
+                // Filter local UDP packets
+                InetAddress ipAddress = inPacket.getAddress();
+                String realLocalIp = Formatter.formatIpAddress(wifiManager.getConnectionInfo().getIpAddress());
+                InetAddress localIpAddress = InetAddress.getByName(realLocalIp);
+                if (!ipAddress.toString().equals(localIpAddress.toString())) {
+                    String rdata = new String(inPacket.getData());// parse content from UDP packet
+                    // receive time stamp and set System time
+                    long time = Long.parseLong(rdata.trim());
+                    displayToUI("difference @ "+ (time-System.currentTimeMillis()) +"\n");
+                   /* boolean res = SystemClock.setCurrentTimeMillis(time+beaconSendTime);
+                    if(res) displayToUI("set time successfully"+"\n");*/
+                }
+            } catch (SocketTimeoutException e) {
+                Log.e(TAG, "listen timeout");
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                if (rds != null && !rds.isClosed()) {
+                    rds.close();
+                }
+            }
+        }
+    }
+
+
 
 
     /**
