@@ -536,7 +536,6 @@ public class MainActivity extends AppCompatActivity {
 
                 // listen util timeout even receive a packet
                 rds.receive(inPacket);
-                displayToUI("receive @ " + System.currentTimeMillis() + "\n");
 
                 // Filter local UDP packets
                 InetAddress ipAddress = inPacket.getAddress();
@@ -548,7 +547,7 @@ public class MainActivity extends AppCompatActivity {
                         //new SendMessageThread("ack", ipAddress).start(); // send a ACK back
                         timeFind = System.currentTimeMillis();
                         displayToUI("receive beacon @ " + (timeFind - timeStart) + " from " + ipAddress.toString() + "\n");
-
+                        saveToFile("B" + randomArrayIndex + ": " +  (timeFind - timeStart) + "\n");
                         if (beaconToFind) {
                             saveToFile("B" + randomArrayIndex + ": " +  (timeFind - timeStart) + "\n");
                             freshStart();
