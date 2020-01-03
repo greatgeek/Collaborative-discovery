@@ -519,9 +519,9 @@ public class MainActivity extends AppCompatActivity {
                         String rdata = new String(inPacket.getData());// parse content from UDP packet
                        // receive time stamp and set System time
                             long time = Long.parseLong(rdata.trim());
-                            displayToUI("rdata @ "+ (time-System.currentTimeMillis()) +"\n");
-                            boolean res = SystemClock.setCurrentTimeMillis(time);
-                            if(res) displayToUI("receive time stamp"+"\n");
+                            displayToUI("difference @ "+ (time-System.currentTimeMillis()) +"\n");
+                            boolean res = SystemClock.setCurrentTimeMillis(time+beaconSendTime);
+                            if(res) displayToUI("set time successfully"+"\n");
                     }
                 } catch (SocketTimeoutException e) {
                     Log.e(TAG, "listen timeout");
