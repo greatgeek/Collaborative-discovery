@@ -439,6 +439,14 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private class SendTimeStampThread extends Thread {
+        @Override
+        public void run() {
+            long time = System.currentTimeMillis();
+            sendMessage(String.valueOf(time),broadcastAddress);
+        }
+    }
+
     private void listen() {
         String TAG = "Listen";
         DatagramSocket rds = null;
@@ -521,7 +529,10 @@ public class MainActivity extends AppCompatActivity {
                             long time = Long.parseLong(rdata.trim());
                             displayToUI("difference @ "+ (time-System.currentTimeMillis()) +"\n");
                             boolean res = SystemClock.setCurrentTimeMillis(time+beaconSendTime);
-                            if(res) displayToUI("set time successfully"+"\n");
+                            if(res) {
+                                new SendTimeStampThread().start();
+                                displayToUI("set time successfully"+"\n");
+                            }
                     }
                 } catch (SocketTimeoutException e) {
                     Log.e(TAG, "listen timeout");
