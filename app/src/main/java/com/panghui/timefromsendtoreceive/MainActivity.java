@@ -464,7 +464,7 @@ public class MainActivity extends AppCompatActivity {
 
                 // listen util timeout even receive a packet
                 rds.receive(inPacket);
-                
+
                 // Filter local UDP packets
                 InetAddress ipAddress = inPacket.getAddress();
                 String realLocalIp = Formatter.formatIpAddress(wifiManager.getConnectionInfo().getIpAddress());
