@@ -476,7 +476,6 @@ public class MainActivity extends AppCompatActivity {
                         //new SendMessageThread("ack", ipAddress).start(); // send a ACK back
                         timeFind = System.currentTimeMillis();
                         displayToUI("receive beacon @ " + (timeFind - timeStart) + " from "+ipAddress.toString()+"\n");
-                        displayToUI("send @ "+System.currentTimeMillis()+"\n");
 
                         sendMessage("ack", ipAddress);
                     } else if (rdata.trim().equals("ack")) {
