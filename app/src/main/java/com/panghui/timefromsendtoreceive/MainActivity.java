@@ -356,8 +356,9 @@ public class MainActivity extends AppCompatActivity {
             new Timer().schedule(new TimerTask() {
                 @Override
                 public void run() {
-                    Log.i("Test", "Send udp at " + System.currentTimeMillis());
-                    sendMessage("beacon", broadcastAddress);
+                    long nowTime = System.currentTimeMillis();
+                    Log.i("Test", "Send udp at " + nowTime);
+                    sendMessage("beacon"+":"+nowTime, broadcastAddress);
                     listen();
                     Log.i("Test", "Stop listen at " + System.currentTimeMillis());
                     disableWifi();
