@@ -23,6 +23,10 @@ import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.BufferedWriter;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -471,12 +475,17 @@ public class MainActivity extends AppCompatActivity {
                 InetAddress localIpAddress = InetAddress.getByName(realLocalIp);
                 if (!ipAddress.toString().equals(localIpAddress.toString())) {
                     String rdata = new String(inPacket.getData());// parse content from UDP packet
-                    if (rdata.trim().equals("beacon")) {
+                    String myrdata = rdata.trim();
+                    if (myrdata.contains("beacon")) {
                         //new SendMessageThread("ack", ipAddress).start(); // send a ACK back
-                        timeFind = System.currentTimeMillis();
-                        displayToUI("receive beacon @ " + (timeFind - timeStart) + " from "+ipAddress.toString()+"\n");
-
                         sendMessage("ack", ipAddress);
+                        timeFind = System.currentTimeMillis();
+
+                        String[] mySubstring = myrdata.split(":");
+                        long newTimeStart = Long.parseLong(mySubstring[1]);
+                        saveToFile("receive beacon @ " + (timeFind - newTimeStart) + " from "+ipAddress.toString()+"\n");
+                        displayToUI("receive beacon @ " + (timeFind - newTimeStart) + " from "+ipAddress.toString()+"\n");
+
                     } else if (rdata.trim().equals("ack")) {
                         Log.i(TAG, localIpAddress + "receive " + rdata + ipAddress);
                         timeFind = System.currentTimeMillis(); // get the time of discovery
@@ -544,6 +553,28 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /***
+     *
+     * @param str save str to a file
+     */
+    public void saveToFile(String str) {
+        FileOutputStream out = null;
+        BufferedWriter writer = null;
+        try {
+            out = openFileOutput("receive_" + filename, Context.MODE_APPEND);
+            writer = new BufferedWriter(new OutputStreamWriter(out));
+            writer.write(str);
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (writer != null) writer.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
 
     /**
      * TODO This thread is used to parse packet
@@ -557,6 +588,7 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void run() {
+
         }
     }
 }
