@@ -33,7 +33,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:inputType="number"
-            android:text="60" />
+            android:text="50" />
 
         <TextView
             android:layout_width="0dp"
@@ -59,7 +59,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:inputType="number"
-            android:text="1099" />
+            android:text="549" />
 
         <TextView
             android:layout_width="0dp"

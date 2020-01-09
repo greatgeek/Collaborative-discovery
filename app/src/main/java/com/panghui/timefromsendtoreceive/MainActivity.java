@@ -358,7 +358,7 @@ public class MainActivity extends AppCompatActivity {
                 public void run() {
                     long nowTime = System.currentTimeMillis();
                     Log.i("Test", "Send udp at " + nowTime);
-                    sendMessage("beacon"+":"+nowTime, broadcastAddress);
+                    sendMessage("beacon"+":"+timeStart, broadcastAddress);
                     listen();
                     Log.i("Test", "Stop listen at " + System.currentTimeMillis());
                     disableWifi();
