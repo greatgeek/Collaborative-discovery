@@ -619,9 +619,13 @@ public class MainActivity extends AppCompatActivity {
                         boolean flag = SystemClock.setCurrentTimeMillis(standardTime+beaconSendTime);
                         if(flag) displayToUI("set SystemClock successfully"+"\n");
                     }else if(myrdata.contains("ack")){
+                        String[] mySubstring = myrdata.split(":");
+                        long standardTime = Long.parseLong(mySubstring[1]);
                         timeFind = System.currentTimeMillis(); // get the discovery time
                         displayToUI("receive ack @ "+(timeFind - timeStart) + " from "+ipAddress.toString()+"\n");
 
+                        boolean flag = SystemClock.setCurrentTimeMillis(standardTime+beaconSendTime);
+                        if(flag) displayToUI("set SystemClock successfully"+"\n");
                     }
                 }
             }catch(UnknownHostException uhe){
