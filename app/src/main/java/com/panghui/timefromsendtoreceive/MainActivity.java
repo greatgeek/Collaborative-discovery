@@ -119,7 +119,7 @@ public class MainActivity extends AppCompatActivity {
     /**
      * random number array
      */
-    int randomNumberCount = 1000;
+    int randomNumberCount = 100;
     long[] randomNumberArray = new long[randomNumberCount];
     int randomArrayIndex = 0;
 
@@ -358,7 +358,7 @@ public class MainActivity extends AppCompatActivity {
                 public void run() {
                     long nowTime = System.currentTimeMillis();
                     Log.i("Test", "Send udp at " + nowTime);
-                    sendMessage("beacon"+":"+timeStart, broadcastAddress);
+                    sendMessage("beacon"+":"+nowTime+":"+timeStart, broadcastAddress);
                     listen();
                     Log.i("Test", "Stop listen at " + System.currentTimeMillis());
                     disableWifi();
@@ -553,7 +553,8 @@ public class MainActivity extends AppCompatActivity {
                             saveToFile("B" + randomArrayIndex + ": " +  (timeFind - timeStart) + "\n");
                             freshStart();
                         }
-                        sendMessage("ack", ipAddress);
+                        long nowTime = System.currentTimeMillis();
+                        sendMessage("ack"+":"+nowTime, ipAddress);
                     } else if (rdata.trim().equals("ack")) {
                         Log.i(TAG, localIpAddress + "receive " + rdata + ipAddress);
                         timeFind = System.currentTimeMillis(); // get the time of discovery
