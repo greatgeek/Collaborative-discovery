@@ -49,6 +49,7 @@ public class MainActivity extends AppCompatActivity {
     boolean alreadyConfigureIp = false;
 
     String filename = "receiveACK" + year + month + day + "_" + hour + "_" + min;// File name consisting of date and time
+    String debugFilename = "debug" + year + month + day + "_" + hour + "_" + min;
     String localIp = IpMaker.getRandomIp();
 
     /**
@@ -358,9 +359,12 @@ public class MainActivity extends AppCompatActivity {
                 public void run() {
                     long nowTime = System.currentTimeMillis();
                     Log.i("Test", "Send udp at " + nowTime);
+                    saveToFile(debugFilename,"sendUDPBegin="+System.currentTimeMillis()+" ");//debug
                     sendMessage("beacon"+":"+nowTime+":"+timeStart, broadcastAddress);
+                    saveToFile(debugFilename,"sendUDPEnd="+System.currentTimeMillis()); // debug
                     listen();
                     Log.i("Test", "Stop listen at " + System.currentTimeMillis());
+                    saveToFile(debugFilename,"listenEnd="+System.currentTimeMillis()+"\n"); // debug
                     disableWifi();
                 }
             }, delayTime);
@@ -464,7 +468,7 @@ public class MainActivity extends AppCompatActivity {
      *
      * @param str save str to a file
      */
-    public void saveToFile(String str) {
+    public void saveToFile(String filename,String str) {
         FileOutputStream out = null;
         BufferedWriter writer = null;
         try {
@@ -548,9 +552,9 @@ public class MainActivity extends AppCompatActivity {
                         //new SendMessageThread("ack", ipAddress).start(); // send a ACK back
                         timeFind = System.currentTimeMillis();
                         displayToUI("receive beacon @ " + (timeFind - timeStart) + " from " + ipAddress.toString() + "\n");
-                        saveToFile("B" + randomArrayIndex + ": " +  (timeFind - timeStart) + " from " + ipAddress.toString() + "\n");
+                        saveToFile(filename,"B" + randomArrayIndex + ": " +  (timeFind - timeStart) + " from " + ipAddress.toString() + "\n");
                         if (beaconToFind) {
-                            saveToFile("B" + randomArrayIndex + ": " +  (timeFind - timeStart) + "\n");
+                            saveToFile(filename,"B" + randomArrayIndex + ": " +  (timeFind - timeStart) + "\n");
                             freshStart();
                         }
                         long nowTime = System.currentTimeMillis();
@@ -561,7 +565,7 @@ public class MainActivity extends AppCompatActivity {
                         // iFindYou = true; // i find you
                         displayToUI("receive ack @ " + (timeFind - timeStart) + " from " + ipAddress.toString() + "\n");
 
-                        saveToFile("A" + randomArrayIndex + ": " + (timeFind - timeStart) + " from " + ipAddress.toString() + "\n");
+                        saveToFile(filename,"A" + randomArrayIndex + ": " + (timeFind - timeStart) + " from " + ipAddress.toString() + "\n");
                         freshStart();
                     }
                 }
