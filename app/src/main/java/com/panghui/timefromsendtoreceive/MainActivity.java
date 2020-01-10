@@ -52,6 +52,7 @@ public class MainActivity extends AppCompatActivity {
     boolean alreadyConfigureIp = false;
 
     String filename = "timedata" + year + month + day + "_" + hour + "_" + min;// File name consisting of date and time
+    String debugFilename = "debug" + year + month + day + "_" + hour + "_" + min;
     String localIp = IpMaker.getRandomIp();
 
     /**
@@ -324,9 +325,12 @@ public class MainActivity extends AppCompatActivity {
                 @Override
                 public void run() {
                     Log.i("Test", "Send udp at " + System.currentTimeMillis());
+                    saveToFile(debugFilename,"sendUDPBegin="+System.currentTimeMillis()+" ");//debug
                     sendMessage("beacon", broadcastAddress);
+                    saveToFile(debugFilename,"sendUDPEnd="+System.currentTimeMillis()); // debug
                     Log.i("Test", "Stop listen at " + System.currentTimeMillis());
                     listen();
+                    saveToFile(debugFilename,"listenEnd="+System.currentTimeMillis()+"\n"); // debug
                     disableWifi();
                 }
             }, delayTime);
@@ -565,7 +569,7 @@ public class MainActivity extends AppCompatActivity {
      *
      * @param str save str to a file
      */
-    public void saveToFile(String str) {
+    public void saveToFile(String filename,String str) {
         FileOutputStream out = null;
         BufferedWriter writer = null;
         try {
@@ -610,22 +614,29 @@ public class MainActivity extends AppCompatActivity {
                         timeFind = System.currentTimeMillis();
 
                         String[] mySubstring = myrdata.split(":");
-                        long standardTime = Long.parseLong(mySubstring[1]);
-                        long newTimeStart = Long.parseLong(mySubstring[2]);
-                        saveToFile("receive beacon @ "+ (timeFind - newTimeStart) + " from "+ipAddress.toString()+"\n");
-                        displayToUI("receive beacon @ "+ (timeFind - newTimeStart) + " from "+ipAddress.toString()+"\n");
+                        if(mySubstring.length ==3){
+                            long standardTime = Long.parseLong(mySubstring[1]);
+                            long newTimeStart = Long.parseLong(mySubstring[2]);
+                            saveToFile(filename,"receive beacon @ "+ (timeFind - newTimeStart) + " from "+ipAddress.toString()+"\n");
+                            displayToUI("receive beacon @ "+ (timeFind - newTimeStart) + " from "+ipAddress.toString()+"\n");
 
-                        // set SystemClock
-                        boolean flag = SystemClock.setCurrentTimeMillis(standardTime+beaconSendTime);
-                        if(flag) displayToUI("set SystemClock successfully"+"\n");
+                            // set SystemClock
+                            boolean flag = SystemClock.setCurrentTimeMillis(standardTime+beaconSendTime);
+                            if(flag) displayToUI("set SystemClock successfully"+"\n");
+                        }
+
                     }else if(myrdata.contains("ack")){
                         String[] mySubstring = myrdata.split(":");
-                        long standardTime = Long.parseLong(mySubstring[1]);
+                        if(mySubstring.length ==2){
+                            long standardTime = Long.parseLong(mySubstring[1]);
+                            boolean flag = SystemClock.setCurrentTimeMillis(standardTime+beaconSendTime);
+                            if(flag) displayToUI("set SystemClock successfully"+"\n");
+                        }
+
                         timeFind = System.currentTimeMillis(); // get the discovery time
                         displayToUI("receive ack @ "+(timeFind - timeStart) + " from "+ipAddress.toString()+"\n");
 
-                        boolean flag = SystemClock.setCurrentTimeMillis(standardTime+beaconSendTime);
-                        if(flag) displayToUI("set SystemClock successfully"+"\n");
+
                     }
                 }
             }catch(UnknownHostException uhe){
