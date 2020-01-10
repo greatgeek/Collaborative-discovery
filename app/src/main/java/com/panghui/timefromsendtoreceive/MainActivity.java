@@ -37,6 +37,8 @@ import java.util.Date;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import static android.os.SystemClock.setCurrentTimeMillis;
+
 public class MainActivity extends AppCompatActivity {
 
     WifiManager wifiManager;
@@ -469,6 +471,10 @@ public class MainActivity extends AppCompatActivity {
                 // listen util timeout even receive a packet
                 rds.receive(inPacket);
 
+                new ParsePacket(inPacket).start(); /**parse the UDP Packet*/
+
+                /*
+
                 // Filter local UDP packets
                 InetAddress ipAddress = inPacket.getAddress();
                 String realLocalIp = Formatter.formatIpAddress(wifiManager.getConnectionInfo().getIpAddress());
@@ -493,10 +499,12 @@ public class MainActivity extends AppCompatActivity {
                         displayToUI("receive ack @ " + (timeFind - timeStart) + " from "+ipAddress.toString()+"\n");
                     }else{ // receive time stamp and set System time
                         long time = Long.parseLong(rdata);
-                        SystemClock.setCurrentTimeMillis(time);
+                        setCurrentTimeMillis(time);
                         displayToUI("receive time stamp");
                     }
                 }
+
+                */
             } catch (SocketTimeoutException e) {
                 Log.e(TAG, "listen timeout");
             } catch (Exception e) {
@@ -535,7 +543,7 @@ public class MainActivity extends AppCompatActivity {
                        // receive time stamp and set System time
                             long time = Long.parseLong(rdata.trim());
                             displayToUI("difference @ "+ (time-System.currentTimeMillis()) +"\n");
-                            boolean res = SystemClock.setCurrentTimeMillis(time+beaconSendTime);
+                            boolean res = setCurrentTimeMillis(time+beaconSendTime);
                             if(res) {
                                 new SendTimeStampThread().start();
                                 displayToUI("set time successfully"+"\n");
@@ -588,7 +596,37 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void run() {
+            try{
+                // Filter local UDP packets
+                InetAddress ipAddress = packet.getAddress();
+                String realLocalIp = Formatter.formatIpAddress(wifiManager.getConnectionInfo().getIpAddress());
+                InetAddress localIpAddress = InetAddress.getByName(realLocalIp);
+                if(!ipAddress.toString().equals(localIpAddress.toString())){
+                    String rdata = new String(packet.getData()); // parse content from UDP packet
+                    String myrdata = rdata.trim();
 
+                    if(myrdata.contains("beacon")){
+                        sendMessage("ack",ipAddress);
+                        timeFind = System.currentTimeMillis();
+
+                        String[] mySubstring = myrdata.split(":");
+                        long standardTime = Long.parseLong(mySubstring[1]);
+                        long newTimeStart = Long.parseLong(mySubstring[2]);
+                        saveToFile("receive beacon @ "+ (timeFind - newTimeStart) + " from "+ipAddress.toString()+"\n");
+                        displayToUI("receive beacon @ "+ (timeFind - newTimeStart) + " from "+ipAddress.toString()+"\n");
+
+                        // set SystemClock
+                        boolean flag = SystemClock.setCurrentTimeMillis(standardTime+beaconSendTime);
+                        if(flag) displayToUI("set SystemClock successfully"+"\n");
+                    }else if(myrdata.contains("ack")){
+                        timeFind = System.currentTimeMillis(); // get the discovery time
+                        displayToUI("receive ack @ "+(timeFind - timeStart) + " from "+ipAddress.toString()+"\n");
+
+                    }
+                }
+            }catch(UnknownHostException uhe){
+                uhe.printStackTrace();
+            }
         }
     }
 }
