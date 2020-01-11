@@ -327,7 +327,7 @@ public class MainActivity extends AppCompatActivity {
                     Log.i("Test", "Send udp at " + System.currentTimeMillis());
                     saveToFile(debugFilename,"sendUDPBegin="+System.currentTimeMillis()+" ");//debug
                     sendMessage("beacon", broadcastAddress);
-                    saveToFile(debugFilename,"sendUDPEnd="+System.currentTimeMillis()); // debug
+                    saveToFile(debugFilename,"sendUDPEnd="+System.currentTimeMillis()+" "); // debug
                     Log.i("Test", "Stop listen at " + System.currentTimeMillis());
                     listen();
                     saveToFile(debugFilename,"listenEnd="+System.currentTimeMillis()+"\n"); // debug
