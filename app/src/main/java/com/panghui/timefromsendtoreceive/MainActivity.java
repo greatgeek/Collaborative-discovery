@@ -120,7 +120,7 @@ public class MainActivity extends AppCompatActivity {
     /**
      * random number array
      */
-    int randomNumberCount = 100;
+    int randomNumberCount = 50;
     long[] randomNumberArray = new long[randomNumberCount];
     int randomArrayIndex = 0;
 
@@ -553,6 +553,7 @@ public class MainActivity extends AppCompatActivity {
                         timeFind = System.currentTimeMillis();
                         displayToUI("receive beacon @ " + (timeFind - timeStart) + " from " + ipAddress.toString() + "\n");
                         saveToFile(filename,"B" + randomArrayIndex + ": " +  (timeFind - timeStart) + " from " + ipAddress.toString() + "\n");
+                        saveToFile(debugFilename,"B" + randomArrayIndex + ": " +  (timeFind - timeStart) + " from " + ipAddress.toString() + "\n");
                         if (beaconToFind) {
                             saveToFile(filename,"B" + randomArrayIndex + ": " +  (timeFind - timeStart) + "\n");
                             freshStart();
@@ -566,6 +567,8 @@ public class MainActivity extends AppCompatActivity {
                         displayToUI("receive ack @ " + (timeFind - timeStart) + " from " + ipAddress.toString() + "\n");
 
                         saveToFile(filename,"A" + randomArrayIndex + ": " + (timeFind - timeStart) + " from " + ipAddress.toString() + "\n");
+                        saveToFile(debugFilename,"A" + randomArrayIndex + ": " + (timeFind - timeStart) + " from " + ipAddress.toString() + "\n");
+
                         freshStart();
                     }
                 }
