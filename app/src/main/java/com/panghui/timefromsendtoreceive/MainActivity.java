@@ -589,7 +589,7 @@ public class MainActivity extends AppCompatActivity {
 
 
     /**
-     * TODO This thread is used to parse packet
+     * This thread is used to parse UDP packet
      */
     private class ParsePacket extends Thread {
         DatagramPacket packet;
@@ -618,6 +618,8 @@ public class MainActivity extends AppCompatActivity {
                             long standardTime = Long.parseLong(mySubstring[1]);
                             long newTimeStart = Long.parseLong(mySubstring[2]);
                             saveToFile(filename,"receive beacon @ "+ (timeFind - newTimeStart) + " from "+ipAddress.toString()+"\n");
+                            saveToFile(debugFilename,"receive beacon @ "+ (timeFind - newTimeStart) + " from "+ipAddress.toString()+"\n");
+
                             displayToUI("receive beacon @ "+ (timeFind - newTimeStart) + " from "+ipAddress.toString()+"\n");
 
                             // set SystemClock
