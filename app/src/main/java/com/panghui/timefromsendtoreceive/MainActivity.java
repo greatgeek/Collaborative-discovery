@@ -541,7 +541,8 @@ public class MainActivity extends AppCompatActivity {
 
                 // listen util timeout even receive a packet
                 rds.receive(inPacket);
-
+                new ParsePacket(inPacket).start();
+                /*
                 // Filter local UDP packets
                 InetAddress ipAddress = inPacket.getAddress();
                 String realLocalIp = Formatter.formatIpAddress(wifiManager.getConnectionInfo().getIpAddress());
@@ -572,6 +573,7 @@ public class MainActivity extends AppCompatActivity {
                         freshStart();
                     }
                 }
+                */
             } catch (SocketTimeoutException e) {
                 Log.e(TAG, "listen timeout");
             } catch (Exception e) {
@@ -642,6 +644,42 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void run() {
+            try{
+                // Filter local UDP packets
+                InetAddress ipAddress = packet.getAddress();
+                String realLocalIp = Formatter.formatIpAddress(wifiManager.getConnectionInfo().getIpAddress());
+                InetAddress localIpAddress = InetAddress.getByName(realLocalIp);
+                if(!ipAddress.toString().equals(localIpAddress.toString())){
+                    String rdata = new String(packet.getData()); // parse content from UDP packet
+                    String myrdata = rdata.trim();
+
+                    if(myrdata.contains("beacon")){
+                        timeFind = System.currentTimeMillis();
+                        displayToUI("receive beacon @ " + (timeFind - timeStart) + " from " + ipAddress.toString() + "\n");
+                        saveToFile(filename,"B" + randomArrayIndex + ": " +  (timeFind - timeStart) + " from " + ipAddress.toString() + "\n");
+                        saveToFile(debugFilename,"B" + randomArrayIndex + ": " +  (timeFind - timeStart) + " from " + ipAddress.toString() + "\n");
+                        if (beaconToFind) {
+                            saveToFile(filename,"B" + randomArrayIndex + ": " +  (timeFind - timeStart) + "\n");
+                            freshStart();
+                        }
+                        long nowTime = System.currentTimeMillis();
+                        sendMessage("ack"+":"+nowTime, ipAddress);
+                    }else if(myrdata.contains("ack")){
+                        // Log.i(TAG, localIpAddress + "receive " + rdata + ipAddress);
+                        timeFind = System.currentTimeMillis(); // get the time of discovery
+                        // iFindYou = true; // i find you
+                        displayToUI("receive ack @ " + (timeFind - timeStart) + " from " + ipAddress.toString() + "\n");
+
+                        saveToFile(filename,"A" + randomArrayIndex + ": " + (timeFind - timeStart) + " from " + ipAddress.toString() + "\n");
+                        saveToFile(debugFilename,"A" + randomArrayIndex + ": " + (timeFind - timeStart) + " from " + ipAddress.toString() + "\n");
+
+                        freshStart();
+
+                    }
+                }
+            }catch(UnknownHostException uhe){
+                uhe.printStackTrace();
+            }
         }
     }
 }
