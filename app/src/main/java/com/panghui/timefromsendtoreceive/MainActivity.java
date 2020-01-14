@@ -120,7 +120,7 @@ public class MainActivity extends AppCompatActivity {
     /**
      * random number array
      */
-    int randomNumberCount = 50;
+    int randomNumberCount = 100;
     long[] randomNumberArray = new long[randomNumberCount];
     int randomArrayIndex = 0;
 
