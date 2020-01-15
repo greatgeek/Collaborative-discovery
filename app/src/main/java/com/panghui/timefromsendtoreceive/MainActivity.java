@@ -324,13 +324,14 @@ public class MainActivity extends AppCompatActivity {
             new Timer().schedule(new TimerTask() {
                 @Override
                 public void run() {
-                    Log.i("Test", "Send udp at " + System.currentTimeMillis());
-                    saveToFile(debugFilename,"sendUDPBegin="+System.currentTimeMillis()+" ");//debug
-                    sendMessage("beacon", broadcastAddress);
-                    saveToFile(debugFilename,"sendUDPEnd="+System.currentTimeMillis()+" "); // debug
-                    Log.i("Test", "Stop listen at " + System.currentTimeMillis());
+                    long nowTime = System.currentTimeMillis();
+                    Log.i("Test", "Send udp at " + nowTime);
+                    saveToFile(debugFilename,"listen="+System.currentTimeMillis()+" ");//debug
                     listen();
-                    saveToFile(debugFilename,"listenEnd="+System.currentTimeMillis()+"\n"); // debug
+                    Log.i("Test", "Stop listen at " + System.currentTimeMillis());
+                    sendMessage("beacon"+":"+nowTime+":"+timeStart+" ", broadcastAddress);
+                    //saveToFile(debugFilename,"sendUDPEnd="+System.currentTimeMillis()); // debug
+                    saveToFile(debugFilename,"End="+System.currentTimeMillis()+"\n"); // debug
                     disableWifi();
                 }
             }, delayTime);
