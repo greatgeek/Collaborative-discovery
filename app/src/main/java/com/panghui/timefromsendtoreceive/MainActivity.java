@@ -120,7 +120,7 @@ public class MainActivity extends AppCompatActivity {
     /**
      * random number array
      */
-    int randomNumberCount = 100;
+    int randomNumberCount = 1000;
     long[] randomNumberArray = new long[randomNumberCount];
     int randomArrayIndex = 0;
 
@@ -359,12 +359,12 @@ public class MainActivity extends AppCompatActivity {
                 public void run() {
                     long nowTime = System.currentTimeMillis();
                     Log.i("Test", "Send udp at " + nowTime);
-                    saveToFile(debugFilename,"sendUDPBegin="+System.currentTimeMillis()+" ");//debug
-                    sendMessage("beacon"+":"+nowTime+":"+timeStart, broadcastAddress);
-                    saveToFile(debugFilename,"sendUDPEnd="+System.currentTimeMillis()); // debug
+                    saveToFile(debugFilename,"listen="+System.currentTimeMillis()+" ");//debug
                     listen();
                     Log.i("Test", "Stop listen at " + System.currentTimeMillis());
-                    saveToFile(debugFilename,"listenEnd="+System.currentTimeMillis()+"\n"); // debug
+                    sendMessage("beacon"+":"+nowTime+":"+timeStart+" ", broadcastAddress);
+                    //saveToFile(debugFilename,"sendUDPEnd="+System.currentTimeMillis()); // debug
+                    saveToFile(debugFilename,"End="+System.currentTimeMillis()+"\n"); // debug
                     disableWifi();
                 }
             }, delayTime);
