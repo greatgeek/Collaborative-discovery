@@ -326,11 +326,10 @@ public class MainActivity extends AppCompatActivity {
                 public void run() {
                     long nowTime = System.currentTimeMillis();
                     Log.i("Test", "Send udp at " + nowTime);
-                    saveToFile(debugFilename,"listen="+System.currentTimeMillis()+" ");//debug
-                    listen();
-                    Log.i("Test", "Stop listen at " + System.currentTimeMillis());
+                    saveToFile(debugFilename,"sendUDPBegin="+System.currentTimeMillis()); // debug
                     sendMessage("beacon"+":"+nowTime+":"+timeStart+" ", broadcastAddress);
-                    //saveToFile(debugFilename,"sendUDPEnd="+System.currentTimeMillis()); // debug
+                    saveToFile(debugFilename,"sendUDPEnd="+System.currentTimeMillis()); // debug
+                    listen();
                     saveToFile(debugFilename,"End="+System.currentTimeMillis()+"\n"); // debug
                     disableWifi();
                 }
