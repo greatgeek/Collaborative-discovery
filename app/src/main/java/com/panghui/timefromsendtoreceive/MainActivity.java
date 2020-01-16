@@ -33,6 +33,7 @@ import java.net.InetAddress;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.util.Calendar;
+import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -124,7 +125,7 @@ public class MainActivity extends AppCompatActivity {
     long[] randomNumberArray = new long[randomNumberCount];
     int randomArrayIndex = 0;
 
-    int w_Hat = 500;
+    Random myRandom = new Random();
 
     Handler handler = new Handler() {
         @Override
@@ -204,7 +205,7 @@ public class MainActivity extends AppCompatActivity {
                     phaseDifference = Long.parseLong(PhaseDifference.getText().toString());
 
                     for (int i = 0; i < randomNumberCount; i++)
-                        randomNumberArray[i] = (long) Math.random() * 10 * phaseDifference;
+                        randomNumberArray[i] = (long) myRandom.nextDouble()* phaseDifference;
 
                     // Do not allow changes to experiment parameters after clicking Start
                     BeaconSendTime.setEnabled(false);
