@@ -205,7 +205,7 @@ public class MainActivity extends AppCompatActivity {
                     phaseDifference = Long.parseLong(PhaseDifference.getText().toString());
 
                     for (int i = 0; i < randomNumberCount; i++)
-                        randomNumberArray[i] = (long) myRandom.nextDouble()* phaseDifference;
+                        randomNumberArray[i] = (long) (myRandom.nextDouble()* phaseDifference);
 
                     // Do not allow changes to experiment parameters after clicking Start
                     BeaconSendTime.setEnabled(false);
